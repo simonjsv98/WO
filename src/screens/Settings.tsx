@@ -6,6 +6,8 @@ import { actions, useStore } from '../lib/store';
 import type { Settings as SettingsType } from '../lib/types';
 
 const TOGGLES: { key: keyof SettingsType; title: string; body: string }[] = [
+  { key: 'restTimer', title: 'Vilotimer', body: 'Startar automatiskt när du bockar av ett set.' },
+  { key: 'autofill', title: 'Föreslå vikter', body: 'Fyller i förra passets vikter som förslag i tomma fält.' },
   { key: 'sound', title: 'Ljudsignaler', body: 'Pip när vilan är slut och när intervaller byter fas.' },
   { key: 'vibrate', title: 'Vibration', body: 'Vibrerar vid samma tillfällen, på telefoner som stöder det.' },
   { key: 'keepAwake', title: 'Håll skärmen tänd', body: 'Skärmen släcks inte under ett pågående pass.' },
@@ -103,7 +105,7 @@ export function Settings() {
       {confirmReset && (
         <ConfirmSheet
           title="Radera all data?"
-          body="Alla pass, all statistik och dina inställningar tas bort. Det går inte att ångra."
+          body="Alla pass, mått, all statistik och dina inställningar tas bort. Det går inte att ångra."
           confirmLabel="Radera allt"
           danger
           onCancel={() => setConfirmReset(false)}

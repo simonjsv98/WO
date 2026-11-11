@@ -1,4 +1,84 @@
-import type { Category, Exercise, Tracking } from '../lib/types';
+import type { Category, Exercise, Pattern, Tracking } from '../lib/types';
+
+/**
+ * Rörelsemönster, svårighetsnivå (1–3), om övningen går att göra hemma med
+ * hantlar, kettlebell och gummiband, samt om den görs en sida i taget.
+ * Övningar med samma mönster är alternativ till varandra.
+ */
+const META: Record<string, [Pattern, 1 | 2 | 3, boolean, boolean?]> = {
+  'goblet-squat': ['squat', 1, true],
+  'heel-elevated-goblet-squat': ['squat', 2, true],
+  thruster: ['squat', 2, true],
+  'front-squat': ['squat', 3, false],
+  'back-squat': ['squat', 3, false],
+
+  'glute-bridge': ['hinge', 1, true],
+  'kb-deadlift': ['hinge', 1, true],
+  rdl: ['hinge', 2, true],
+  'single-leg-rdl': ['hinge', 2, true, true],
+  'hip-thrust': ['hinge', 2, false],
+  deadlift: ['hinge', 3, false],
+
+  'reverse-lunge': ['lunge', 1, true, true],
+  'step-up': ['lunge', 1, true, true],
+  'lateral-lunge': ['lunge', 2, true, true],
+  'walking-lunge': ['lunge', 2, true, true],
+  'split-squat': ['lunge', 3, true, true],
+
+  pushup: ['hpush', 1, true],
+  'floor-press': ['hpush', 2, true],
+  'db-bench-press': ['hpush', 2, false],
+  'bench-press': ['hpush', 3, false],
+
+  'half-kneeling-press': ['vpush', 1, true, true],
+  'db-shoulder-press': ['vpush', 2, true],
+  'overhead-press': ['vpush', 3, false],
+
+  'band-row': ['hpull', 1, true],
+  'db-row': ['hpull', 2, true, true],
+  'inverted-row': ['hpull', 2, false],
+  'barbell-row': ['hpull', 3, false],
+
+  'band-pulldown': ['vpull', 1, true],
+  'lat-pulldown': ['vpull', 2, false],
+  pullup: ['vpull', 3, false],
+
+  'band-pull-apart': ['shoulder', 1, true],
+  'face-pull': ['shoulder', 2, true],
+
+  pogo: ['jump', 1, true],
+  'jump-squat': ['jump', 1, true],
+  'skater-jump': ['jump', 2, true, true],
+  'broad-jump': ['jump', 2, true],
+  'box-jump': ['jump', 2, false],
+
+  'plyo-pushup': ['throw', 2, true],
+  'push-press': ['throw', 2, true],
+  'kb-swing': ['throw', 2, true],
+  'med-ball-chest-pass': ['throw', 1, false],
+  'med-ball-slam': ['throw', 1, false],
+
+  'dead-bug': ['core', 1, true],
+  'bird-dog': ['core', 1, true, true],
+  plank: ['core', 1, true],
+  'side-plank': ['core', 2, true, true],
+  'pallof-press': ['core', 2, true, true],
+  'hollow-hold': ['core', 2, true],
+  'bear-crawl': ['core', 2, true],
+  'hanging-knee-raise': ['core', 3, false],
+
+  'suitcase-carry': ['carry', 1, true, true],
+  'farmer-carry': ['carry', 2, true],
+
+  'calf-raise': ['calf', 1, true],
+
+  'jump-rope': ['cardio', 1, true],
+  'mountain-climber': ['cardio', 1, true],
+  burpee: ['cardio', 2, true],
+  'shuttle-run': ['cardio', 2, true],
+  'cardio-machine': ['cardio', 2, false],
+};
+
 
 function ex(
   id: string,
@@ -10,7 +90,8 @@ function ex(
   description: string,
   cues: string[],
 ): Exercise {
-  return { id, name, category, tracking, equipment, muscles, description, cues };
+  const [pattern, level, home, unilateral] = META[id] ?? ['mobility', 1, true];
+  return { id, name, category, tracking, equipment, muscles, description, cues, pattern, level, home, unilateral: !!unilateral };
 }
 
 export const EXERCISES: Exercise[] = [
@@ -179,6 +260,34 @@ export const EXERCISES: Exercise[] = [
     'Gör en knäböj med vikterna på axlarna och använd farten upp till att pressa dem över huvudet.',
     ['En sammanhängande rörelse', 'Armbågarna höga i botten', 'Lås ut helt i toppen']),
 
+  ex('heel-elevated-goblet-squat', 'Goblet-knäböj med upphöjda hälar', 'Styrka', 'load', 'Kettlebell eller hantel och en kil', ['Framsida lår'],
+    'Stå med hälarna på en viktskiva eller kil, håll vikten mot bröstet och böj djupt med upprätt överkropp.',
+    ['Knäna långt fram över tårna', 'Tre sekunder ner', 'Stanna strax före låsta knän i toppen']),
+  ex('kb-deadlift', 'Marklyft med kettlebell', 'Styrka', 'load', 'Kettlebell eller hantlar', ['Baksida lår', 'Säte', 'Rygg'],
+    'Stå över en kettlebell, fäll i höften med rak rygg och lyft genom att sträcka höft och knän samtidigt.',
+    ['Vikten mellan hälarna', 'Skjut höften bakåt, inte knäna framåt', 'Knip sätet i toppen']),
+  ex('walking-lunge', 'Gående utfall', 'Styrka', 'load', 'Hantlar eller kettlebell', ['Framsida lår', 'Säte'],
+    'Ta ett långt steg framåt, sänk bakre knät mot golvet och kliv direkt in i nästa utfall.',
+    ['Upprätt överkropp', 'Tryck ifrån med främre hälen', 'Jämn rytm, ingen paus mellan stegen']),
+  ex('floor-press', 'Golvpress med hantlar', 'Styrka', 'load', 'Hantlar eller kettlebell', ['Bröst', 'Triceps'],
+    'Ligg på golvet med böjda knän och pressa hantlarna från bröstet till raka armar. Överarmarna nuddar golvet i varje repetition.',
+    ['Pausa kort när armbågarna når golvet', 'Skulderbladen ihop', 'Handlederna raka']),
+  ex('db-shoulder-press', 'Axelpress med hantlar', 'Styrka', 'load', 'Hantlar eller kettlebell', ['Axlar', 'Triceps'],
+    'Pressa två hantlar från axlarna till raka armar över huvudet, stående eller sittande.',
+    ['Revbenen ner', 'Armbågarna lite framför kroppen', 'Sänk till örhöjd']),
+  ex('push-press', 'Push press', 'Kraft', 'load', 'Hantlar, kettlebell eller skivstång', ['Axlar', 'Ben', 'Bål'],
+    'Ta sats med en snabb, grund knäböj och använd benens kraft för att skjuta vikten över huvudet.',
+    ['Kort och snabb knäknyck', 'Hälarna i golvet tills benen är sträckta', 'Lås ut och sänk kontrollerat']),
+  ex('band-row', 'Rodd med gummiband', 'Styrka', 'load', 'Gummiband', ['Övre rygg', 'Lats', 'Biceps'],
+    'Fäst gummibandet i höfthöjd, luta dig lätt bakåt och dra handtagen mot nedre delen av bröstkorgen.',
+    ['Skulderbladen ihop i slutet', 'Armbågarna nära kroppen', 'Två sekunder tillbaka']),
+  ex('lat-pulldown', 'Latsdrag', 'Styrka', 'load', 'Kabelmaskin', ['Lats', 'Biceps'],
+    'Sitt stadigt, greppa stången brett och dra den mot övre delen av bröstet.',
+    ['Börja med att dra ner skulderbladen', 'Bröstet upp mot stången', 'Sträck ut helt i toppen']),
+  ex('band-pulldown', 'Latsdrag med gummiband', 'Styrka', 'load', 'Gummiband', ['Lats', 'Biceps'],
+    'Fäst gummibandet högt, stå på knä och dra handtagen ner mot axlarna.',
+    ['Armbågarna mot höftfickorna', 'Håll revbenen nere', 'Pausa en sekund i botten']),
+
   /* ---------- Bål ---------- */
   ex('plank', 'Plankan', 'Bål', 'time', 'Ingen', ['Mage', 'Axlar'],
     'Stå på underarmar och tår med kroppen i en rak linje.',
@@ -238,3 +347,18 @@ export function getExercise(id: string): Exercise {
 }
 
 export const CATEGORIES: Category[] = ['Styrka', 'Kraft', 'Bål', 'Kondition', 'Rörlighet'];
+
+const LEVEL_ORDER = (a: Exercise, b: Exercise) => a.level - b.level || a.name.localeCompare(b.name, 'sv');
+
+/** Andra övningar med samma rörelsemönster, lättast först. Rörlighetsövningar har inga alternativ. */
+export function alternativesFor(id: string): Exercise[] {
+  const base = getExercise(id);
+  if (base.pattern === 'mobility') return [];
+  return EXERCISES.filter((e) => e.pattern === base.pattern && e.id !== id).sort(LEVEL_ORDER);
+}
+
+/** Hur ett alternativ förhåller sig till övningen det ersätter. */
+export function compareLevel(alternative: Exercise, base: Exercise): 'Lättare' | 'Liknande' | 'Svårare' {
+  if (alternative.level < base.level) return 'Lättare';
+  return alternative.level > base.level ? 'Svårare' : 'Liknande';
+}

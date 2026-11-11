@@ -4,13 +4,14 @@ import { ExerciseInfo, describeSets } from '../components/ExerciseInfo';
 import { Icon } from '../components/Icon';
 import { IntervalTimer } from '../components/IntervalTimer';
 import { ConfirmSheet, Sheet } from '../components/Sheet';
-import { describeItem, getProgram, resolveSession } from '../data/programs';
+import { alternativesFor } from '../data/exercises';
+import { describeItem, programFromId, resolveSession } from '../data/programs';
 import { keepScreenAwake, unlockAudio } from '../lib/feedback';
 import { formatClock, formatMinutes, formatVolume, inputValue, parseDecimal } from '../lib/format';
 import { navigate } from '../lib/router';
 import { exerciseHistory, logDurationSec, logSetCount, logVolume } from '../lib/stats';
 import { actions, useStore } from '../lib/store';
-import type { Exercise, ResolvedBlock, ResolvedItem, SetLog, WorkoutLog } from '../lib/types';
+import type { ResolvedBlock, ResolvedItem, SetLog, WorkoutLog } from '../lib/types';
 import { useNow } from '../lib/useNow';
 
 function blockDone(block: ResolvedBlock, log: WorkoutLog): boolean {
@@ -40,12 +41,14 @@ const RPE_TEXT: Record<number, string> = {
 export function Workout() {
   const active = useStore((s) => s.active);
   const logs = useStore((s) => s.logs);
-  const keepAwake = useStore((s) => s.settings.keepAwake);
+  const settings = useStore((s) => s.settings);
+  const swaps = useStore((s) => s.swaps);
+  const keepAwake = settings.keepAwake;
 
-  const session = useMemo(
-    () => (active ? resolveSession(getProgram(active.programId), active.week, active.sessionId) : null),
-    [active?.programId, active?.week, active?.sessionId],
-  );
+  const session = useMemo(() => {
+    const program = active && programFromId(active.programId);
+    return program ? resolveSession(program, active.week, active.sessionId, swaps) : null;
+  }, [active?.programId, active?.week, active?.sessionId, swaps]);
 
   const [blockIndex, setBlockIndex] = useState(() => {
     if (!active || !session) return 0;
@@ -53,12 +56,16 @@ export function Workout() {
     return first === -1 ? session.blocks.length - 1 : first;
   });
   const [countdown, setCountdown] = useState<Countdown | null>(null);
-  const [info, setInfo] = useState<Exercise | null>(null);
+  /** Nyckeln till övningen vars panel är öppen, så att panelen följer med vid byte. */
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   useEffect(() => {
-    if (!active || !session) navigate('/', true);
+    if (active && session) return;
+    // Ett pass från ett upplägg som inte längre går att läsa kan inte fortsätta.
+    if (active) actions.discardWorkout();
+    navigate('/', true);
   }, [active, session]);
 
   useEffect(() => (keepAwake ? keepScreenAwake() : undefined), [keepAwake]);
@@ -81,6 +88,18 @@ export function Workout() {
 
   const block = session.blocks[blockIndex];
   const isLast = blockIndex === session.blocks.length - 1;
+  const open = session.blocks.flatMap((b) => b.items.map((item) => ({ item, block: b }))).find((x) => x.item.key === openKey);
+
+  // Övningar i samma superset (B1, B2) visas ihop.
+  const clusters: ResolvedItem[][] = [];
+  if (block.format === 'sets') {
+    for (const item of block.items) {
+      const last = clusters[clusters.length - 1];
+      const letter = item.group?.[0];
+      if (last && item.group && item.group.length > 1 && last[0].group?.[0] === letter) last.push(item);
+      else clusters.push([item]);
+    }
+  }
 
   const go = (index: number) => {
     setBlockIndex(index);
@@ -130,7 +149,7 @@ export function Workout() {
                 key={item.key}
                 item={item}
                 checked={!!active.checks[item.key]}
-                onInfo={() => setInfo(item.exercise)}
+                onInfo={() => setOpenKey(item.key)}
                 onTimer={() => {
                   const perSide = item.perSide;
                   const sec = (item.targetSec ?? 0) * (perSide ? 2 : 1);
@@ -144,24 +163,35 @@ export function Workout() {
           </ul>
         )}
 
-        {block.format === 'sets' &&
-          block.items.map((item) => (
+        {clusters.map((cluster) => {
+          const cards = cluster.map((item) => (
             <SetCard
               key={item.key}
               item={item}
               sets={active.entries.find((e) => e.key === item.key)?.sets ?? []}
               previous={exerciseHistory(logs, item.exercise.id)[0]?.sets ?? null}
-              onInfo={() => setInfo(item.exercise)}
-              onRest={() => startCountdown('Vila', item.restSec)}
+              autofill={settings.autofill}
+              onInfo={() => setOpenKey(item.key)}
+              onRest={() => settings.restTimer && item.restSec > 0 && startCountdown('Vila', item.restSec)}
             />
-          ))}
+          ));
+          if (cluster.length === 1) return cards[0];
+          return (
+            <section key={cluster[0].key} className="superset">
+              <p className="label superset-head">
+                Superset {cluster[0].group![0]} · växla mellan övningarna, vila efter {cluster[cluster.length - 1].group}
+              </p>
+              {cards}
+            </section>
+          );
+        })}
 
         {block.format === 'timer' && block.timer && (
           <>
             <ul className="plain-list timer-items">
               {block.items.map((item) => (
                 <li key={item.key}>
-                  <button className="row-link" onClick={() => setInfo(item.exercise)}>
+                  <button className="row-link" onClick={() => setOpenKey(item.key)}>
                     <span>
                       {item.exercise.name}
                       {item.note && <small className="muted"> · {item.note}</small>}
@@ -215,9 +245,27 @@ export function Workout() {
         </div>
       </footer>
 
-      {info && (
-        <Sheet title={info.name} onClose={() => setInfo(null)}>
-          <ExerciseInfo exercise={info} />
+      {open && (
+        <Sheet title={open.block.format === 'sets' ? 'Din övning' : open.item.exercise.name} onClose={() => setOpenKey(null)}>
+          {open.block.format === 'sets' && <h3 className="h1 sheet-title">{open.item.exercise.name}</h3>}
+          <ExerciseInfo
+            exercise={open.item.exercise}
+            baseId={open.item.baseExerciseId}
+            onSwap={
+              open.block.format === 'sets'
+                ? (id) => {
+                    const base = open.item.baseExerciseId;
+                    const keys = session.blocks
+                      .filter((b) => b.format === 'sets')
+                      .flatMap((b) => b.items)
+                      .filter((i) => i.baseExerciseId === base)
+                      .map((i) => i.key);
+                    actions.swapExercise(base, id, keys);
+                    setOpenKey(null);
+                  }
+                : undefined
+            }
+          />
         </Sheet>
       )}
       {confirmDiscard && (
@@ -271,18 +319,21 @@ interface SetCardProps {
   item: ResolvedItem;
   sets: SetLog[];
   previous: SetLog[] | null;
+  /** Föreslå förra passets vikter i tomma fält. */
+  autofill: boolean;
   onInfo: () => void;
   onRest: () => void;
 }
 
-function SetCard({ item, sets, previous, onInfo, onRest }: SetCardProps) {
+function SetCard({ item, sets, previous, autofill, onInfo, onRest }: SetCardProps) {
+  const canSwap = alternativesFor(item.baseExerciseId).length > 0;
   const loaded = item.exercise.tracking === 'load';
   const repsUnit = item.exercise.tracking === 'time' ? 's' : 'reps';
 
   /** Förslag på vikt: föregående set i dag, annars samma set förra gången. */
   const weightHint = (index: number): number | null => {
     for (let i = index - 1; i >= 0; i--) if (sets[i].weight !== null) return sets[i].weight;
-    if (!previous?.length) return null;
+    if (!autofill || !previous?.length) return null;
     return previous[Math.min(index, previous.length - 1)].weight;
   };
   const repsHint = item.targetReps ?? item.targetSec;
@@ -303,16 +354,23 @@ function SetCard({ item, sets, previous, onInfo, onRest }: SetCardProps) {
 
   return (
     <section className="card set-card">
-      <button className="set-card-head" onClick={onInfo}>
+      <button className="set-card-head" onClick={onInfo} aria-label={`${item.exercise.name}: instruktioner${canSwap ? ' och alternativ' : ''}`}>
         <span>
-          <span className="h3">{item.exercise.name}</span>
+          <span className="h3">
+            {item.group && <span className="group-tag num">{item.group}</span>}
+            {item.exercise.name}
+          </span>
           <span className="muted set-card-meta num">
-            {item.sets} × {item.target} · vila {formatClock(item.restSec)}
+            {item.sets} × {item.target}
+            {item.restSec > 0 ? ` · vila ${formatClock(item.restSec)}` : ' · direkt vidare'}
           </span>
         </span>
-        <Icon name="info" size={20} />
+        <span className="set-card-action">
+          <Icon name={canSwap ? 'swap' : 'info'} size={18} />
+          {canSwap ? 'Byt' : 'Info'}
+        </span>
       </button>
-      {item.note && <p className="note">{item.note}</p>}
+      <p className="note">{item.note ?? item.exercise.cues[0]}</p>
       {previous && <p className="muted small num">Senast: {describeSets(previous)}</p>}
 
       <div className="set-grid" role="group" aria-label={`Set för ${item.exercise.name}`}>
@@ -379,7 +437,7 @@ function Finish({ log, onBack }: { log: WorkoutLog; onBack: () => void }) {
 
   const save = () => {
     const id = actions.finishWorkout(rpe, note);
-    navigate(id ? `/framsteg/${id}` : '/', true);
+    navigate(id ? `/du/pass/${id}` : '/', true);
   };
 
   return (

@@ -130,11 +130,11 @@ export function streakWeeks(logs: WorkoutLog[], now = Date.now()): number {
 
 export const sessionKey = (week: number, sessionId: string): string => `${week}:${sessionId}`;
 
-/** Vilka pass som är avklarade i aktuell omgång av programmet. */
-export function completedSessions(logs: WorkoutLog[], programId: string, cycle: number): Set<string> {
+/** Vilka pass som är avklarade i aktuell omgång av fasen. */
+export function completedSessions(logs: WorkoutLog[], cycle: number): Set<string> {
   const done = new Set<string>();
   for (const log of finished(logs)) {
-    if (log.programId === programId && log.cycle === cycle) done.add(sessionKey(log.week, log.sessionId));
+    if (log.cycle === cycle) done.add(sessionKey(log.week, log.sessionId));
   }
   return done;
 }
@@ -152,4 +152,35 @@ export function nextSession(program: Program, done: Set<string>): SessionRef | n
     }
   }
   return null;
+}
+
+export interface NewRecord extends Record_ {
+  /** Tidigare bästa uppskattade maxlyft, eller null första gången övningen loggas med vikt. */
+  previous: number | null;
+}
+
+/** Personbästa som sattes i ett visst pass, jämfört med alla pass som avslutades före det. */
+export function newRecords(logs: WorkoutLog[], log: WorkoutLog): NewRecord[] {
+  if (log.finishedAt === null) return [];
+  const before = personalRecords(logs.filter((l) => l.finishedAt !== null && l.finishedAt < log.finishedAt!));
+  const earlier = new Map(before.map((r) => [r.exerciseId, r.e1rm]));
+  return personalRecords([log])
+    .filter((r) => !earlier.has(r.exerciseId) || r.e1rm > earlier.get(r.exerciseId)! + 1e-9)
+    .map((r) => ({ ...r, previous: earlier.get(r.exerciseId) ?? null }));
+}
+
+export interface SeriesPoint {
+  at: number;
+  value: number;
+}
+
+/** Bästa uppskattade maxlyft per pass för en övning, äldst först. */
+export function exerciseSeries(logs: WorkoutLog[], exerciseId: string): SeriesPoint[] {
+  return exerciseHistory(logs, exerciseId)
+    .map((h) => ({
+      at: h.at,
+      value: Math.max(0, ...h.sets.filter((s) => s.weight && s.reps).map((s) => e1rm(s.weight!, s.reps!))),
+    }))
+    .filter((p) => p.value > 0)
+    .reverse();
 }

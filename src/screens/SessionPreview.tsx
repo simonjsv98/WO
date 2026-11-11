@@ -2,23 +2,24 @@ import { useState } from 'react';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { Icon } from '../components/Icon';
 import { ConfirmSheet, Sheet } from '../components/Sheet';
-import { describeItem, describeTimer, getProgram, resolveSession } from '../data/programs';
+import { alternativesFor } from '../data/exercises';
+import { describeItem, describeTimer, resolveSession } from '../data/programs';
 import { unlockAudio } from '../lib/feedback';
+import { formatDate } from '../lib/format';
 import { goBack, navigate } from '../lib/router';
-import { completedSessions, sessionKey } from '../lib/stats';
+import { dayStart } from '../lib/schedule';
+import { sessionKey } from '../lib/stats';
 import { actions, useStore } from '../lib/store';
-import type { Exercise } from '../lib/types';
+import { useProgram } from '../lib/useProgram';
 
 export function SessionPreview({ week, sessionId }: { week: number; sessionId: string }) {
-  const programId = useStore((s) => s.programId);
-  const cycle = useStore((s) => s.cycle);
-  const logs = useStore((s) => s.logs);
+  const { program, done, swaps, upcoming } = useProgram();
   const active = useStore((s) => s.active);
-  const [info, setInfo] = useState<Exercise | null>(null);
+  /** Nyckeln till raden som är öppen, så att panelen följer med när övningen byts. */
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
 
-  const program = getProgram(programId);
-  const session = week >= 0 && week < program.weeks.length ? resolveSession(program, week, sessionId) : null;
+  const session = week >= 0 && week < program.weeks.length ? resolveSession(program, week, sessionId, swaps) : null;
 
   if (!session) {
     return (
@@ -31,8 +32,11 @@ export function SessionPreview({ week, sessionId }: { week: number; sessionId: s
     );
   }
 
-  const isDone = completedSessions(logs, programId, cycle).has(sessionKey(week, sessionId));
-  const isActive = active?.programId === programId && active.week === week && active.sessionId === sessionId;
+  const isDone = done.has(sessionKey(week, sessionId));
+  const isActive = active?.programId === program.id && active.week === week && active.sessionId === sessionId;
+  const planned = upcoming.find((u) => u.week === week && u.sessionId === sessionId);
+  const open = session.blocks.flatMap((b) => b.items.map((item) => ({ item, block: b }))).find((x) => x.item.key === openKey);
+  const hasAlternatives = session.blocks.some((b) => b.format === 'sets' && b.items.some((i) => alternativesFor(i.baseExerciseId).length));
 
   const start = () => {
     unlockAudio();
@@ -57,10 +61,20 @@ export function SessionPreview({ week, sessionId }: { week: number; sessionId: s
         <p className="muted">{session.focus}</p>
         <div className="chip-row">
           <span className="chip">{session.estMin} min</span>
-          <span className="chip">{session.blocks.length} block</span>
-          {isDone && <span className="chip chip-accent">Avklarat</span>}
+          {isDone ? (
+            <span className="chip chip-accent">Avklarat</span>
+          ) : (
+            planned && <span className="chip">{planned.date === dayStart(Date.now()) ? 'Idag' : formatDate(planned.date)}</span>
+          )}
         </div>
       </div>
+
+      {hasAlternatives && (
+        <p className="tip">
+          <Icon name="swap" size={18} />
+          <span>Saknar du utrustning eller vill ha en lättare variant? Tryck på en övning för att se alternativ och byta.</span>
+        </p>
+      )}
 
       {session.blocks.map((block, i) => (
         <section key={block.key} className="card">
@@ -72,8 +86,12 @@ export function SessionPreview({ week, sessionId }: { week: number; sessionId: s
           <ul className="plain-list">
             {block.items.map((item) => (
               <li key={item.key}>
-                <button className="row-link" onClick={() => setInfo(item.exercise)}>
-                  <span>{item.exercise.name}</span>
+                <button className="row-link" onClick={() => setOpenKey(item.key)}>
+                  <span>
+                    {item.group && <span className="group-tag num">{item.group}</span>}
+                    {item.exercise.name}
+                    {item.exercise.id !== item.baseExerciseId && <span className="muted small"> · bytt</span>}
+                  </span>
                   <span className="muted num">{describeItem(item, block.format)}</span>
                 </button>
               </li>
@@ -94,9 +112,19 @@ export function SessionPreview({ week, sessionId }: { week: number; sessionId: s
         )}
       </div>
 
-      {info && (
-        <Sheet title={info.name} onClose={() => setInfo(null)}>
-          <ExerciseInfo exercise={info} />
+      {open && (
+        <Sheet title={open.block.format === 'sets' ? 'Din övning' : open.item.exercise.name} onClose={() => setOpenKey(null)}>
+          {open.block.format === 'sets' && <h3 className="h1 sheet-title">{open.item.exercise.name}</h3>}
+          <ExerciseInfo
+            exercise={open.item.exercise}
+            baseId={open.item.baseExerciseId}
+            // Under ett pågående pass byter man i passvyn, där loggen följer med.
+            onSwap={
+              open.block.format === 'sets' && !active
+                ? (id) => actions.swapExercise(open.item.baseExerciseId, id, [])
+                : undefined
+            }
+          />
         </Sheet>
       )}
       {confirmReplace && active && (

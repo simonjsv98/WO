@@ -93,6 +93,7 @@ button:disabled {
   text-transform: uppercase;
   line-height: 0.95;
   letter-spacing: 0.005em;
+  word-spacing: 0.08em;
 }
 
 .display {
@@ -1543,4 +1544,437 @@ section > .label {
     border-left: 1px solid var(--line);
     border-right: 1px solid var(--line);
   }
+}
+
+/* ---------- Upplägg (gym/hemma, dagar) ---------- */
+
+.choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.choice-group > legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--line);
+  text-align: left;
+}
+
+.choice.is-on {
+  border-color: var(--accent);
+  background: rgb(215 242 90 / 0.08);
+}
+
+.choice-title {
+  font-weight: 650;
+}
+
+.choice-body {
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.choice-num {
+  align-items: center;
+  padding: 10px;
+}
+
+.choice-big {
+  font-family: var(--font-display);
+  font-stretch: 75%;
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekday {
+  min-height: 46px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.weekday.is-on {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+/* ---------- Idag: veckorad och vilodag ---------- */
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-top: -8px;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+
+.day:disabled {
+  opacity: 1;
+}
+
+.day-name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.day-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.day-planned .day-mark {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.day-done .day-mark {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.day.is-today .day-name {
+  color: var(--text);
+}
+
+.day.is-today .day-mark {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text);
+  color: var(--text);
+}
+
+.day-done.is-today .day-mark {
+  color: var(--accent-ink);
+}
+
+.top-bar .wordmark {
+  display: block;
+  margin-top: 2px;
+}
+
+.rest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 20px 20px;
+  border-radius: 22px;
+}
+
+.rest-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--accent);
+}
+
+.tiles-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tile-btn {
+  text-align: left;
+  color: var(--text);
+}
+
+.tile-btn:active {
+  background: var(--surface-2);
+}
+
+.tile-btn .tile-value {
+  margin: 2px 0;
+}
+
+/* ---------- Övningsbyten och supersets ---------- */
+
+.tip {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.tip > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.group-tag {
+  display: inline-block;
+  min-width: 26px;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-2);
+  vertical-align: 1px;
+}
+
+.superset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent);
+}
+
+.superset-head {
+  padding: 2px 0 4px 6px;
+}
+
+.set-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  flex: none;
+}
+
+.sheet-title {
+  margin: -4px 0 16px;
+  font-size: 30px;
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14.5px;
+  text-decoration: none;
+}
+
+.link-row > svg {
+  color: var(--accent);
+}
+
+.alt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.alt-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.alt-main:disabled {
+  opacity: 1;
+}
+
+.alt-name {
+  font-weight: 600;
+}
+
+.alt-row + .muted,
+.plain-list + .muted.small {
+  margin-top: 8px;
+}
+
+/* ---------- Formulär ---------- */
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input {
+  width: 100%;
+  height: 52px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid transparent;
+  background: var(--surface-2);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.filter-wrap {
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+p[role='alert']:empty {
+  display: none;
+}
+
+/* ---------- Linjediagram ---------- */
+
+.chart-line-area {
+  position: absolute;
+  inset: 0 12px 0 calc(var(--gutter) + 12px);
+}
+
+.chart-line-area svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.chart-point {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, 50%);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.chart-point::after {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.chart-point.is-on::after {
+  width: 11px;
+  height: 11px;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
+}
+
+.chart-axis-ends {
+  justify-content: space-between;
+  margin-left: var(--gutter);
+}
+
+.chart-axis-ends span {
+  flex: none;
+}
+
+/* ---------- Mått och resultat ---------- */
+
+.toggle-card {
+  border-top: 0;
+  padding: 16px 18px;
+}
+
+.entry-row {
+  align-items: center;
+}
+
+.entry-row > :first-child {
+  flex: 1;
+}
+
+.entry-row .icon-btn {
+  margin: -8px -10px -8px 0;
+  color: var(--muted);
+}
+
+.pb-row {
+  align-items: center;
+  gap: 12px;
+}
+
+.pb-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  flex: none;
+}
+
+.pb-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: left !important;
+}
+
+.session-row > strong {
+  flex: none;
 }

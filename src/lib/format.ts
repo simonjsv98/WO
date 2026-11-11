@@ -36,7 +36,11 @@ export function formatSeconds(sec: number): string {
 const dateFmt = new Intl.DateTimeFormat('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' });
 const dayMonthFmt = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' });
 
+const longDateFmt = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+
 export const formatDate = (ts: number): string => dateFmt.format(ts);
+/** Utskrivet datum utan förkortningar, för löpande text: "fredag 13 november". */
+export const formatLongDate = (ts: number): string => longDateFmt.format(ts);
 export const formatDayMonth = (ts: number): string => dayMonthFmt.format(ts);
 
 /** Tolkar inmatning med decimalkomma. Tom eller ogiltig text ger null. */

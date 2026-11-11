@@ -1,39 +1,102 @@
 import { useSyncExternalStore } from 'react';
-import { PROGRAMS } from '../data/programs';
-import type { AppState, ResolvedSession, SetLog, Settings, WorkoutLog } from './types';
+import { EXERCISES } from '../data/exercises';
+import { programId } from '../data/programs';
+import { getMetric } from './metrics';
+import { dayStart, defaultWeekdays } from './schedule';
+import type { AppState, Days, MetricEntry, Plan, ResolvedSession, SetLog, Settings, Version, WorkoutLog } from './types';
 
 const STORAGE_KEY = 'wo.state.v1';
 
 export function defaultState(): AppState {
   return {
-    version: 1,
-    programId: PROGRAMS[0].id,
+    version: 2,
+    onboarded: false,
+    plan: { version: 'gym', days: 4, weekdays: defaultWeekdays(4) },
+    phase: 0,
     cycle: 1,
+    swaps: {},
+    metrics: {},
+    pinned: ['weight'],
     logs: [],
     active: null,
-    settings: { sound: true, vibrate: true, keepAwake: true },
+    settings: { sound: true, vibrate: true, keepAwake: true, restTimer: true, autofill: true },
   };
 }
 
-/** Validerar inläst data så att trasig lagring eller en felaktig importfil inte kraschar appen. */
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+const validLog = (l: unknown): l is WorkoutLog =>
+  isObject(l) && typeof l.id === 'string' && typeof l.startedAt === 'number' && Array.isArray(l.entries);
+
+function parsePlan(raw: unknown): Plan {
+  const base = defaultState().plan;
+  if (!isObject(raw)) return base;
+  const version: Version = raw.version === 'home' ? 'home' : 'gym';
+  const days = ([2, 3, 4] as const).find((d) => d === raw.days) ?? base.days;
+  const picked = Array.isArray(raw.weekdays)
+    ? [...new Set(raw.weekdays.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6))].sort()
+    : [];
+  return { version, days, weekdays: picked.length === days ? picked : defaultWeekdays(days) };
+}
+
+function parseMetrics(raw: unknown): Record<string, MetricEntry[]> {
+  const out: Record<string, MetricEntry[]> = {};
+  if (!isObject(raw)) return out;
+  for (const [id, entries] of Object.entries(raw)) {
+    if (!getMetric(id) || !Array.isArray(entries)) continue;
+    out[id] = entries
+      .filter((e): e is MetricEntry => isObject(e) && typeof e.at === 'number' && typeof e.value === 'number')
+      .sort((a, b) => a.at - b.at);
+  }
+  return out;
+}
+
+/**
+ * Validerar inläst data så att trasig lagring eller en felaktig importfil inte kraschar appen.
+ * Data från den första versionen (fasta program utan faser) flyttas över: historiken behålls
+ * och programmet börjar om i fas 1.
+ */
 export function parseState(raw: unknown): AppState | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const data = raw as Partial<AppState>;
-  if (data.version !== 1 || !Array.isArray(data.logs)) return null;
+  if (!isObject(raw) || !Array.isArray(raw.logs)) return null;
   const base = defaultState();
-  const validLog = (l: unknown): l is WorkoutLog =>
-    !!l &&
-    typeof l === 'object' &&
-    typeof (l as WorkoutLog).id === 'string' &&
-    typeof (l as WorkoutLog).startedAt === 'number' &&
-    Array.isArray((l as WorkoutLog).entries);
+  const logs = raw.logs.filter(validLog);
+  const settings = { ...base.settings, ...(isObject(raw.settings) ? raw.settings : {}) } as Settings;
+  const cycle = typeof raw.cycle === 'number' ? raw.cycle : 1;
+
+  if (raw.version === 1) {
+    const home = raw.programId === 'hemma';
+    const days: Days = home ? 3 : 4;
+    return {
+      ...base,
+      onboarded: logs.length > 0,
+      plan: { version: home ? 'home' : 'gym', days, weekdays: defaultWeekdays(days) },
+      cycle: cycle + 1,
+      logs,
+      settings,
+    };
+  }
+  if (raw.version !== 2) return null;
+
+  const known = new Set(EXERCISES.map((e) => e.id));
+  const swaps: Record<string, string> = {};
+  if (isObject(raw.swaps)) {
+    for (const [from, to] of Object.entries(raw.swaps)) {
+      if (typeof to === 'string' && known.has(from) && known.has(to)) swaps[from] = to;
+    }
+  }
+
   return {
-    version: 1,
-    programId: PROGRAMS.some((p) => p.id === data.programId) ? data.programId! : base.programId,
-    cycle: typeof data.cycle === 'number' ? data.cycle : 1,
-    logs: data.logs.filter(validLog),
-    active: validLog(data.active) ? data.active : null,
-    settings: { ...base.settings, ...(typeof data.settings === 'object' ? data.settings : {}) },
+    version: 2,
+    onboarded: raw.onboarded === true,
+    plan: parsePlan(raw.plan),
+    phase: typeof raw.phase === 'number' && raw.phase >= 0 ? Math.floor(raw.phase) : 0,
+    cycle,
+    swaps,
+    metrics: parseMetrics(raw.metrics),
+    pinned: Array.isArray(raw.pinned) ? raw.pinned.filter((id): id is string => typeof id === 'string' && !!getMetric(id)) : base.pinned,
+    logs,
+    active: validLog(raw.active) ? raw.active : null,
+    settings,
   };
 }
 
@@ -86,19 +149,28 @@ function updateSets(key: string, fn: (sets: SetLog[]) => SetLog[]): void {
 const emptySet = (): SetLog => ({ weight: null, reps: null, done: false });
 
 export const actions = {
-  selectProgram(programId: string): void {
-    if (programId === state.programId) return;
-    commit({ ...state, programId, cycle: state.cycle + 1 });
+  completeOnboarding(plan: Plan): void {
+    commit({ ...state, onboarded: true, plan: parsePlan(plan) });
   },
 
-  restartProgram(): void {
-    commit({ ...state, cycle: state.cycle + 1 });
+  /** Ändrar upplägget. Avklarade pass i fasen ligger kvar. */
+  updatePlan(plan: Plan): void {
+    commit({ ...state, plan: parsePlan(plan) });
+  },
+
+  /** Går till en annan fas och börjar den från vecka 1. Egna övningsbyten nollställs. */
+  startPhase(phase: number): void {
+    commit({ ...state, phase: Math.max(0, phase), cycle: state.cycle + 1, swaps: {}, active: null });
+  },
+
+  restartPhase(): void {
+    commit({ ...state, cycle: state.cycle + 1, active: null });
   },
 
   startWorkout(session: ResolvedSession): void {
     const log: WorkoutLog = {
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-      programId: state.programId,
+      programId: programId(state.phase, state.plan.version, state.plan.days),
       cycle: state.cycle,
       week: session.week,
       sessionId: session.id,
@@ -120,6 +192,27 @@ export const actions = {
       note: '',
     };
     commit({ ...state, active: log });
+  },
+
+  /**
+   * Byter ut en av programmets övningar mot ett alternativ. Bytet gäller resten av fasen.
+   * `activeKeys` är raderna i det pågående passet som ska följa med; där nollställs
+   * set som inte är avklarade, eftersom vikterna hör till den gamla övningen.
+   */
+  swapExercise(baseId: string, replacementId: string, activeKeys: string[]): void {
+    const swaps = { ...state.swaps };
+    if (replacementId === baseId) delete swaps[baseId];
+    else swaps[baseId] = replacementId;
+
+    const active = state.active && {
+      ...state.active,
+      entries: state.active.entries.map((e) =>
+        activeKeys.includes(e.key)
+          ? { ...e, exerciseId: replacementId, sets: e.sets.map((s) => (s.done ? s : emptySet())) }
+          : e,
+      ),
+    };
+    commit({ ...state, swaps, active });
   },
 
   updateSet(key: string, index: number, patch: Partial<SetLog>): void {
@@ -161,6 +254,26 @@ export const actions = {
     commit({ ...state, logs: state.logs.filter((l) => l.id !== id) });
   },
 
+  /** Sparar ett mätvärde. Ett nytt värde samma dag ersätter det tidigare. */
+  logMetric(id: string, value: number, at = Date.now()): void {
+    if (!getMetric(id)) return;
+    const day = dayStart(at);
+    const entries = (state.metrics[id] ?? []).filter((e) => dayStart(e.at) !== day);
+    entries.push({ at, value });
+    entries.sort((a, b) => a.at - b.at);
+    commit({ ...state, metrics: { ...state.metrics, [id]: entries } });
+  },
+
+  deleteMetricEntry(id: string, at: number): void {
+    const entries = (state.metrics[id] ?? []).filter((e) => e.at !== at);
+    commit({ ...state, metrics: { ...state.metrics, [id]: entries } });
+  },
+
+  togglePin(id: string): void {
+    const pinned = state.pinned.includes(id) ? state.pinned.filter((p) => p !== id) : [...state.pinned, id];
+    commit({ ...state, pinned });
+  },
+
   updateSettings(patch: Partial<Settings>): void {
     commit({ ...state, settings: { ...state.settings, ...patch } });
   },
@@ -173,7 +286,8 @@ export const actions = {
     try {
       const parsed = parseState(JSON.parse(text));
       if (!parsed) return false;
-      commit(parsed);
+      // En säkerhetskopia med historik tillhör någon som redan har kommit igång.
+      commit({ ...parsed, onboarded: parsed.onboarded || parsed.logs.length > 0 });
       return true;
     } catch {
       return false;

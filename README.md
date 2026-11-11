@@ -1,19 +1,24 @@
 # WO
 
-En träningsapp för mobilen med månadsprogram där varje pass går från uppvärmning via kraft och styrka till kondition, bål och nedvarvning.
+En träningsapp för mobilen byggd kring månadsfaser: fyra veckor i taget, där varje pass går från uppvärmning via kraftutveckling och styrka till finisher och nedvarvning.
 
-| Idag | Pass | Timer | Framsteg |
+Appen ligger på https://simonjsv98.github.io/WO/ och går att lägga till på hemskärmen.
+
+| Idag | Pass | Alternativ | Du |
 | --- | --- | --- | --- |
-| ![Startsidan](docs/idag.png) | ![Loggning av set](docs/pass.png) | ![Intervalltimer](docs/timer.png) | ![Statistik](docs/framsteg.png) |
+| ![Idag](docs/idag.png) | ![Loggning av set](docs/pass.png) | ![Byte av övning](docs/alternativ.png) | ![Mått och statistik](docs/du.png) |
 
 ## Funktioner
 
-- **Månadsprogram** på fyra veckor (Grund, Bygg, Topp, Lätt) där set och repetitioner ändras vecka för vecka. Två program följer med: *Atlet* (gym, fyra pass i veckan) och *Hemma* (kettlebell, tre pass i veckan).
-- **Guidade pass** i block. Logga vikt och repetitioner per set, få förra passets vikter som förslag och en vilotimer som startar när du bockar av ett set.
-- **Timers** för intervaller, EMOM och AMRAP med ljud, vibration och varvräknare. Skärmen hålls tänd under passet.
-- **Övningsbibliotek** med beskrivning, teknikpunkter och din egen historik per övning.
-- **Framsteg**: pass, tid och lyft vikt per vecka, personbästa och full historik.
-- **Fungerar offline** och går att lägga till på hemskärmen. All data sparas lokalt i webbläsaren och kan exporteras och importeras som fil.
+- **Eget upplägg.** Välj gym eller hemma, två till fyra pass i veckan och vilka veckodagar du tränar. Upplägget går att ändra mitt i en fas.
+- **Faser på fyra veckor.** Tre faser (Grund, Styrka, Kraft) med olika övningar, set och repetitioner. När en fas är klar går du vidare till nästa.
+- **Idag.** Visar dagens pass eller vilodag, veckans planerade och avklarade pass och dina fästa mått. Ett missat pass flyttas fram till nästa träningsdag.
+- **Guidade pass.** Fem block per pass, med styrkan upplagd i supersets. Logga vikt och repetitioner per set, få förra passets vikter som förslag och en vilotimer som startar när du bockar av ett set.
+- **Alternativ till varje övning.** Lättare, liknande och svårare varianter med samma rörelsemönster. Byt före eller under passet; bytet gäller resten av fasen.
+- **Timers** för intervaller, varje minut och max antal varv, med ljud, vibration och varvräknare.
+- **Resultat.** Efter passet visas tid, set, personbästa som slogs och märken för första passet och veckor i rad.
+- **Du.** Logga kroppsvikt och andra mått, fäst dem som höjdpunkter, och följ pass, tid, lyft vikt, personbästa och maxlyft per övning över tid.
+- **Fungerar offline.** All data sparas lokalt i webbläsaren och kan exporteras och importeras som fil.
 
 ## Kom igång
 
@@ -24,10 +29,11 @@ npm test         # enhetstester
 npm run build    # produktionsbygge i dist/
 ```
 
-Bygget är statiskt och använder relativa sökvägar, så `dist/` kan läggas på valfri statisk host.
+Varje push till huvudgrenen bygger, testar och publicerar appen till GitHub Pages.
 
 ## Struktur
 
-- `src/data/` – övningar och program. Ett nytt program är en ny post i `programs.ts`.
-- `src/lib/` – lagring, statistik, timerlogik och formatering.
+- `src/data/exercises.ts` – övningar med rörelsemönster och nivå, som styr vilka alternativ som erbjuds.
+- `src/data/programs.ts` – faserna. En fas anger en övning per plats (gym och hemma), och veckans pass byggs från det.
+- `src/lib/` – lagring, schema, statistik, timerlogik och formatering.
 - `src/screens/` och `src/components/` – gränssnittet.

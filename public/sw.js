@@ -1,5 +1,5 @@
 // Enkel service worker: nätverket först för sidan, cache först för byggda filer.
-const CACHE = 'wo-v1';
+const CACHE = 'wo-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
