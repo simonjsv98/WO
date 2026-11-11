@@ -13,6 +13,7 @@ createRoot(document.getElementById('root')!).render(
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register('./sw.js');
+    // Offline-stöd är en bonus: appen fungerar även där registreringen nekas.
+    navigator.serviceWorker.register('./sw.js').catch(() => undefined);
   });
 }
