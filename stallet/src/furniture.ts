@@ -363,15 +363,7 @@ export function buildFurniture(m: Materials): THREE.Group {
   group.add(place(buildCoffeeTable(m), f.coffeeTable));
   for (const chair of f.armchairs) group.add(place(buildSeating(0.9, 1, m), chair));
   group.add(buildKitchen(m));
-  // Kaminen står med ryggen mot nya rummets vägg, mitt för en regel (45 mm bred).
-  // 0,22 är halva kaminens djup.
-  group.add(
-    place(buildStove(m), {
-      x: D.newRoom.frontX - f.stove.wallGap - 0.22,
-      z: f.stove.stud * D.newRoom.studSpacing + 0.0225,
-      turn: f.stove.turn,
-    }),
-  );
+  group.add(place(buildStove(m), f.stove));
   group.add(buildCookstove(m));
   return group;
 }

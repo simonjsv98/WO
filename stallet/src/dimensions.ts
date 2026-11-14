@@ -130,15 +130,21 @@ export const storageNook = { fromX: 8.53, fromZ: beam.z + beam.width / 2, timber
  * (0 = framsidan mot +z, 90 = mot +x, 180 = mot -z, -90 = mot -x).
  */
 export const furniture = {
-  /** Matbord med sex stolar vid köksgaveln, med arbetsyta kvar framför vedspisen i hörnet. */
-  dining: { x: 2.0, z: 2.4, tableLength: 1.8, tableWidth: 0.9 },
+  /**
+   * Matbord med sex stolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på
+   * tvären, med långsidan ut från soffväggen.
+   */
+  dining: { x: 2.0, z: 2.2, turn: 90, tableLength: 1.8, tableWidth: 0.9 },
 
-  /** Soffa mot soffväggen, soffbord och två fåtöljer vända mot soffan. */
-  sofa: { x: 4.85, z: 0.55, turn: 0, width: 2.05 },
-  coffeeTable: { x: 4.85, z: 1.75 },
+  /**
+   * Soffgruppen i U-form: soffan med ryggen mot nya rummet, en fåtölj med ryggen mot
+   * soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.
+   */
+  sofa: { x: 6.7, z: 1.6, turn: -90, width: 2.05 },
+  coffeeTable: { x: 5.55, z: 1.65, turn: 90 },
   armchairs: [
-    { x: 4.05, z: 3.0, turn: 168 },
-    { x: 5.65, z: 3.05, turn: 192 },
+    { x: 5.3, z: 0.6, turn: 0 },
+    { x: 4.4, z: 2.05, turn: 75 },
   ],
 
   /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
@@ -158,18 +164,11 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn mot nya rummets vägg mot soffhörnan, vänd ut mot rummet och
-   * centrerad på en av väggens reglar. `stud` räknar reglarna från soffväggen, där 0 är
-   * hörnregeln bakom avloppsröret; 3 är alltså den tredje synliga regeln, 1,8 m ut.
-   * `wallGap` är luften mellan kaminens rygg och regelväggen. Rökröret går rakt upp genom
-   * taket (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   * Braskamin i gjutjärn vid stolpraden, mellan andra och tredje stolpen, vänd mot
+   * soff- och matdelen. Rökröret går rakt upp genom taket, strax intill bärlinan
+   * (`flue: 'wall'` drar det i stället bakåt genom en vägg).
    */
-  stove: {
-    stud: 3,
-    wallGap: 0.3,
-    turn: -90,
-    flue: 'ceiling' as 'ceiling' | 'wall',
-  },
+  stove: { x: 4.0, z: 4.15, turn: 200, flue: 'ceiling' as 'ceiling' | 'wall' },
 
   /**
    * Husqvarna-vedspisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd och inmurad
@@ -203,8 +202,8 @@ export const lighting = {
     { x: 1.0, z: 7.58, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
     { x: 2.2, z: 7.58, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
   ],
-  /** Golvlampa vid soffans ena gavel. */
-  floorLamps: [{ x: 3.45, z: 0.55, watts: 40 }],
+  /** Golvlampa bredvid fåtöljen vid soffväggen. */
+  floorLamps: [{ x: 4.55, z: 0.45, watts: 40 }],
   /** Små lampor i fönsternischerna – en per fönster i soff- och matdelen. */
   windowLamps: ['S1', 'S2', 'A3', 'B1'],
   /** Bordslampa på vitrinskåpets bänkskiva. */

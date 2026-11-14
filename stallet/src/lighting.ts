@@ -150,9 +150,11 @@ export function buildLighting(m: Materials): Lighting {
   }
 
   /* Skenet från braskaminen och vedspisen. */
+  // Ljuset sitter en bit framför kaminens lucka.
   const stove = D.furniture.stove;
-  const stoveX = D.newRoom.frontX - stove.wallGap - 0.5;
-  const stoveZ = stove.stud * D.newRoom.studSpacing + 0.0225;
+  const facing = THREE.MathUtils.degToRad(stove.turn);
+  const stoveX = stove.x + Math.sin(facing) * 0.3;
+  const stoveZ = stove.z + Math.cos(facing) * 0.3;
   sources.push({ kind: 'fire', position: [stoveX, 0.5, stoveZ], color: 0xff7a2e, watts: 25 });
 
   // En lykta med ett ljus i, på golvet bredvid vedspisen.

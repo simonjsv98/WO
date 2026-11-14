@@ -20,11 +20,13 @@ Kvällsljus, renderat med Blender Cycles i 1920 × 1080.
 | --- | --- |
 | ![Soffhörnan](renders/soffhornan.jpg) | ![Matplatsen](renders/matplatsen.jpg) |
 
-| Köket | Längs rummet |
+| Kaminen | Köket |
 | --- | --- |
-| ![Köket](renders/koket.jpg) | ![Längs rummet](renders/langs-rummet.jpg) |
+| ![Kaminen](renders/kaminen.jpg) | ![Köket](renders/koket.jpg) |
 
-![Översikt](renders/oversikt.jpg)
+| Längs rummet | Översikt |
+| --- | --- |
+| ![Längs rummet](renders/langs-rummet.jpg) | ![Översikt](renders/oversikt.jpg) |
 
 ## Kom igång
 
@@ -75,18 +77,18 @@ Förenklingar:
 
 Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet och vridning i grader – så det går fort att flytta runt saker.
 
-- **Matgrupp** – bord med sex pinnstolar vid köksgaveln, med arbetsyta kvar framför vedspisen.
-- **Soffgrupp** – tresitssoffa mot soffväggen, soffbord och två fåtöljer.
+- **Matgrupp** – bord med sex pinnstolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på tvären, med långsidan ut från soffväggen.
+- **Soffgrupp** – i U-form: tresitssoffan med ryggen mot nya rummet, en fåtölj med ryggen mot soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.
 - **Kök** – öppen furubänk i vinkel med ugn, kokplatta, mikro och diskho, redskapslist på väggen, kyl/frys och det blå vitrinskåpet.
 - **Vedspis** – Husqvarna-spisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd (häll på 0,86 m) och inmurad i vitputsat murverk, med murstock i hörnet upp till taket.
-- **Braskamin** – gjutjärnskamin mot nya rummets vägg mot soffhörnan, centrerad på tredje synliga regeln (1,8 m från soffväggen) och vänd ut mot rummet, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det 0,3 m från kaminens rygg till regelväggen och ungefär 0,25 m från röret till närmaste takbjälke, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
+- **Braskamin** – gjutjärnskamin vid stolpraden, mellan andra och tredje stolpen, vänd mot soff- och matdelen, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det ungefär 0,2 m från kaminens rygg till bärlinan, 0,25 m från röret till bärlinan och 0,3 m till närmaste stolpe och takbjälke – allt är trä, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
 
 ## Belysning
 
 Lamporna står under `lighting` i `src/dimensions.ts`.
 
 - Taklampa med linneskärm över matbordet och tre emaljskärmar över köksbänken.
-- Golvlampa vid soffan, bordslampa på vitrinskåpet och små lampor i fyra av fönsternischerna.
+- Golvlampa vid fåtöljen mot soffväggen, bordslampa på vitrinskåpet och små lampor i fyra av fönsternischerna.
 - Tre vägglampor: vid vita dörren, vid plywooddörren och i förrådshörnan.
 - Ljusslinga med klotlampor längs bärlinan.
 - Levande ljus på matbordet och soffbordet, en lykta vid vedspisen och skenet från braskaminen.
