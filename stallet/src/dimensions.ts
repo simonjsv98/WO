@@ -125,15 +125,15 @@ export const storageNook = { fromX: 8.53, fromZ: beam.z + beam.width / 2, timber
  * (0 = framsidan mot +z, 90 = mot +x, 180 = mot -z, -90 = mot -x).
  */
 export const furniture = {
-  /** Matbord med sex stolar, en bit ut från köksgaveln så att kaminen får fritt framför sig. */
-  dining: { x: 2.8, z: 2.1, tableLength: 1.8, tableWidth: 0.9 },
+  /** Matbord med sex stolar vid köksgaveln, med arbetsyta kvar framför vedspisen i hörnet. */
+  dining: { x: 2.0, z: 2.4, tableLength: 1.8, tableWidth: 0.9 },
 
   /** Soffa mot soffväggen, soffbord och två fåtöljer vända mot soffan. */
-  sofa: { x: 5.5, z: 0.55, turn: 0, width: 2.05 },
-  coffeeTable: { x: 5.5, z: 1.75 },
+  sofa: { x: 4.85, z: 0.55, turn: 0, width: 2.05 },
+  coffeeTable: { x: 4.85, z: 1.75 },
   armchairs: [
-    { x: 4.6, z: 3.0, turn: 168 },
-    { x: 6.4, z: 3.05, turn: 192 },
+    { x: 4.05, z: 3.0, turn: 168 },
+    { x: 5.65, z: 3.05, turn: 192 },
   ],
 
   /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
@@ -152,8 +152,12 @@ export const furniture = {
     hutchX: [3.85, 5.15],
   },
 
-  /** Braskamin i gjutjärn mot köksgaveln, mellan fönstret och den vita dörren. Röret går ut genom väggen. */
-  stove: { x: 0.42, z: 2.78, turn: 90 },
+  /**
+   * Braskamin i gjutjärn vid nya rummets ytterhörn, snett utåt mot rummet. `cornerGap` är
+   * avståndet från hörnet till kaminens mitt. Rökröret går rakt upp genom taket
+   * (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   */
+  stove: { cornerGap: 0.64, turn: -45, flue: 'ceiling' as 'ceiling' | 'wall' },
 
   /**
    * Husqvarna-vedspisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd och inmurad

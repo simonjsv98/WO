@@ -249,7 +249,7 @@ function buildKitchen(m: Materials): THREE.Group {
 
 /* ------------------------------------------------------------- braskamin */
 
-/** Braskamin i gjutjärn på ben, med glasad lucka och rökrör bakåt ut genom väggen. */
+/** Braskamin i gjutjärn på ben, med glasad lucka och rökrör. */
 function buildStove(m: Materials): THREE.Group {
   const g = new THREE.Group();
   const iron = m.castIron;
@@ -276,12 +276,19 @@ function buildStove(m: Materials): THREE.Group {
     g.add(box(sx * w - 0.006, sx * w + 0.006, 0.3, 0.66, -d + 0.05, d - 0.05, iron));
   }
 
-  // Rökrör: rakt upp och sedan bakåt in i väggen.
   const pipeZ = -d + 0.1;
-  const bend = 1.55;
-  g.add(rod(v(0, 0.775, pipeZ), v(0, bend, pipeZ), 0.065, iron));
-  g.add(rod(v(0, bend, pipeZ + 0.065), v(0, bend, -d - 0.3), 0.065, iron));
-  g.add(rod(v(0, bend, -d - 0.2), v(0, bend, -d - 0.215), 0.1, iron));
+  if (D.furniture.stove.flue === 'ceiling') {
+    // Rökrör rakt upp genom taket, med en täckplåt mot takbrädorna.
+    const ceiling = D.ceiling.boards;
+    g.add(rod(v(0, 0.775, pipeZ), v(0, ceiling, pipeZ), 0.065, iron));
+    g.add(rod(v(0, ceiling - 0.012, pipeZ), v(0, ceiling, pipeZ), 0.15, iron));
+  } else {
+    // Rökrör rakt upp och sedan bakåt in i väggen.
+    const bend = 1.55;
+    g.add(rod(v(0, 0.775, pipeZ), v(0, bend, pipeZ), 0.065, iron));
+    g.add(rod(v(0, bend, pipeZ + 0.065), v(0, bend, -d - 0.3), 0.065, iron));
+    g.add(rod(v(0, bend, -d - 0.2), v(0, bend, -d - 0.215), 0.1, iron));
+  }
   return g;
 }
 
@@ -356,7 +363,15 @@ export function buildFurniture(m: Materials): THREE.Group {
   group.add(place(buildCoffeeTable(m), f.coffeeTable));
   for (const chair of f.armchairs) group.add(place(buildSeating(0.9, 1, m), chair));
   group.add(buildKitchen(m));
-  group.add(place(buildStove(m), f.stove));
+  // Kaminen står på diagonalen ut från nya rummets ytterhörn.
+  const reach = f.stove.cornerGap / Math.SQRT2;
+  group.add(
+    place(buildStove(m), {
+      x: D.newRoom.frontX - reach,
+      z: D.newRoom.depthZ + reach,
+      turn: f.stove.turn,
+    }),
+  );
   group.add(buildCookstove(m));
   return group;
 }
