@@ -14,21 +14,19 @@ Projektet är fristående från träningsappen i resten av repot.
 
 ## Raytracade bilder
 
-Kvällsljus, renderat med Blender Cycles i 1920 × 1080.
+Kvällsljus, renderat med Blender Cycles i 1920 × 1080. Bilderna är från en tidigare möblering: braskaminen, vedspisen och matbordet har flyttats sedan dess, och strecken i golvet är borttagna. Skärmdumparna överst och visaren visar hur det ser ut nu. Nya bilder görs med skriptet under [Rendera själv](#rendera-själv).
 
 | Soffhörnan | Matplatsen |
 | --- | --- |
 | ![Soffhörnan](renders/soffhornan.jpg) | ![Matplatsen](renders/matplatsen.jpg) |
 
-| Vedspisen | Kaminen |
+| Kaminen | Köket |
 | --- | --- |
-| ![Vedspisen](renders/vedspisen.jpg) | ![Kaminen](renders/kaminen.jpg) |
+| ![Kaminen](renders/kaminen.jpg) | ![Köket](renders/koket.jpg) |
 
-| Köket | Längs rummet |
+| Längs rummet | Översikt |
 | --- | --- |
-| ![Köket](renders/koket.jpg) | ![Längs rummet](renders/langs-rummet.jpg) |
-
-![Översikt](renders/oversikt.jpg)
+| ![Längs rummet](renders/langs-rummet.jpg) | ![Översikt](renders/oversikt.jpg) |
 
 ## Kom igång
 
