@@ -1,0 +1,104 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0e0f0d;
+}
+
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  touch-action: none;
+}
+
+#panel {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(14, 15, 13, 0.82);
+  backdrop-filter: blur(8px);
+  color: #f3f1ea;
+  font-size: 14px;
+}
+
+#panel summary {
+  font-size: 17px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+#panel summary span {
+  margin-left: 6px;
+  font-weight: 400;
+  color: #a9a79f;
+}
+
+#panel details[open] summary {
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.row + .row {
+  margin-top: 10px;
+}
+
+button {
+  padding: 7px 11px;
+  border: 1px solid #3a3c36;
+  border-radius: 999px;
+  background: #1c1e1a;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2a2d27;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #d7f25a;
+  outline-offset: 2px;
+}
+
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+input[type='checkbox'] {
+  accent-color: #d7f25a;
+}
+
+#hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  padding: 0 12px;
+  text-align: center;
+  color: #0e0f0d;
+  font-size: 12px;
+  opacity: 0.7;
+  pointer-events: none;
+}

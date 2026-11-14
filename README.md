@@ -37,3 +37,7 @@ Varje push till huvudgrenen bygger, testar och publicerar appen till GitHub Page
 - `src/data/programs.ts` – faserna. En fas anger en övning per plats (gym och hemma), och veckans pass byggs från det.
 - `src/lib/` – lagring, schema, statistik, timerlogik och formatering.
 - `src/screens/` och `src/components/` – gränssnittet.
+
+## Stallet
+
+I [`stallet/`](stallet/) ligger ett fristående sidoprojekt: en 3D-modell av stallet. Det har eget bygge och påverkar inte appen.
