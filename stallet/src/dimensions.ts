@@ -153,12 +153,14 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn mitt på nya rummets vägg mot soffhörnan, vänd ut mot rummet.
+   * Braskamin i gjutjärn mot nya rummets vägg mot soffhörnan, vänd ut mot rummet och
+   * centrerad på en av väggens reglar. `stud` räknar reglarna från soffväggen, där 0 är
+   * hörnregeln bakom avloppsröret; 3 är alltså den tredje synliga regeln, 1,8 m ut.
    * `wallGap` är luften mellan kaminens rygg och regelväggen. Rökröret går rakt upp genom
    * taket (`flue: 'wall'` drar det i stället bakåt genom en vägg).
    */
   stove: {
-    z: newRoom.depthZ / 2,
+    stud: 3,
     wallGap: 0.3,
     turn: -90,
     flue: 'ceiling' as 'ceiling' | 'wall',

@@ -64,7 +64,7 @@ Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet o
 - **Soffgrupp** – tresitssoffa mot soffväggen, soffbord och två fåtöljer.
 - **Kök** – öppen furubänk i vinkel med ugn, kokplatta, mikro och diskho, redskapslist på väggen, kyl/frys och det blå vitrinskåpet.
 - **Vedspis** – Husqvarna-spisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd (häll på 0,86 m) och inmurad i vitputsat murverk, med murstock i hörnet upp till taket.
-- **Braskamin** – gjutjärnskamin mitt på nya rummets vägg mot soffhörnan, vänd ut mot rummet, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det 0,3 m från kaminens rygg till regelväggen, ungefär 0,25 m från röret till närmaste takbjälke och knappt 0,9 m till soffans gavel, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
+- **Braskamin** – gjutjärnskamin mot nya rummets vägg mot soffhörnan, centrerad på tredje synliga regeln (1,8 m från soffväggen) och vänd ut mot rummet, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det 0,3 m från kaminens rygg till regelväggen och ungefär 0,25 m från röret till närmaste takbjälke, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
 
 Murstocken och rökrörens dragning är antaganden – modellen vet inget om var det finns en rökkanal.
 
