@@ -291,7 +291,7 @@ function flat(color: number, roughness = 0.8, metalness = 0): THREE.MeshStandard
 }
 
 export function createMaterials() {
-  return {
+  const materials = {
     plaster: standard(canvasTexture(1, plaster)),
     concrete: standard(canvasTexture(2, concrete, 1024)),
     whiteWood: standard(canvasTexture(3, whiteWood)),
@@ -324,6 +324,20 @@ export function createMaterials() {
       roughness: 0.2,
     }),
     ground: flat(0x7f8a6c, 1),
+    // Lampor
+    linenShade: new THREE.MeshStandardMaterial({
+      color: 0xf2e6cf,
+      emissive: 0xffc98a,
+      emissiveIntensity: 0.9,
+      roughness: 0.9,
+      side: THREE.DoubleSide,
+    }),
+    enamelShade: new THREE.MeshStandardMaterial({ color: 0x24362f, roughness: 0.35, metalness: 0.3, side: THREE.DoubleSide }),
+    enamelInside: new THREE.MeshStandardMaterial({ color: 0xf4efe2, emissive: 0xffc98a, emissiveIntensity: 0.6, roughness: 0.5, side: THREE.DoubleSide }),
+    bulb: new THREE.MeshStandardMaterial({ color: 0xfff1d8, emissive: 0xffd9a0, emissiveIntensity: 2.2 }),
+    flame: new THREE.MeshStandardMaterial({ color: 0xffe2a8, emissive: 0xffb347, emissiveIntensity: 2.6 }),
+    wax: flat(0xf3eedf, 0.6),
+    cord: flat(0x1b1a18, 0.7),
     // Möbler
     masonry: standard(canvasTexture(18, (ctx, size, rnd) => {
       ctx.fillStyle = '#f0ede3';
@@ -343,6 +357,9 @@ export function createMaterials() {
     hearth: flat(0x2b2c2e, 0.4, 0.5),
     ember: new THREE.MeshStandardMaterial({ color: 0x1a0800, emissive: 0xe0480a, emissiveIntensity: 1.1 }),
   };
+  // Namnge materialen så att de går att känna igen efter export (t.ex. i Blender).
+  for (const [name, material] of Object.entries(materials)) material.name = name;
+  return materials;
 }
 
 export type Materials = ReturnType<typeof createMaterials>;

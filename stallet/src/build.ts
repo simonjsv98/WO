@@ -114,11 +114,12 @@ function buildWindow(o: LocalOpening, m: Materials): THREE.Group {
     g.add(box(u0, u1, y0, y1, zOut, zIn, m.whitePaint));
   wood(o.u0, o.u0 + f, o.sill, o.top);
   wood(o.u1 - f, o.u1, o.sill, o.top);
-  wood(o.u0, o.u1, o.sill, o.sill + f);
-  wood(o.u0, o.u1, o.top - f, o.top);
+  // De liggande delarna och mittposten går mellan de stående, utan att överlappa dem.
+  wood(o.u0 + f, o.u1 - f, o.sill, o.sill + f);
+  wood(o.u0 + f, o.u1 - f, o.top - f, o.top);
   if (o.panes === 2) {
     const mid = (o.u0 + o.u1) / 2;
-    wood(mid - 0.03, mid + 0.03, o.sill, o.top);
+    wood(mid - 0.03, mid + 0.03, o.sill + f, o.top - f);
   }
   g.add(box(o.u0 + f, o.u1 - f, o.sill + f, o.top - f, -0.275, -0.265, m.glass));
   if (o.lintel) g.add(box(o.u0 - 0.12, o.u1 + 0.12, o.top, o.top + 0.15, -0.02, 0.012, m.lintel));
@@ -133,7 +134,7 @@ function buildWhiteDoor(o: LocalOpening, m: Materials): THREE.Group {
     g.add(box(u0, u1, y0, y1, -0.12, 0.012, m.blackPaint));
   frame(o.u0, o.u0 + f, 0, o.top);
   frame(o.u1 - f, o.u1, 0, o.top);
-  frame(o.u0, o.u1, o.top - f, o.top);
+  frame(o.u0 + f, o.u1 - f, o.top - f, o.top);
   g.add(box(o.u0 + f, o.u1 - f, 0.02, o.top - f, -0.1, -0.06, m.whitePaint));
   g.add(box(o.u1 - f - 0.12, o.u1 - f - 0.09, 0.95, 1.08, -0.06, -0.035, m.blackPaint));
   return g;
@@ -148,7 +149,7 @@ function buildPlywoodDoor(o: LocalOpening, m: Materials): THREE.Group {
     g.add(box(u0, u1, y0, y1, -0.14, 0.008, m.blackPaint));
   black(o.u0, o.u0 + outer, 0, o.top);
   black(o.u1 - outer, o.u1, 0, o.top);
-  black(o.u0, o.u1, o.top - outer, o.top);
+  black(o.u0 + outer, o.u1 - outer, o.top - outer, o.top);
 
   const a = o.u0 + outer;
   const b = o.u1 - outer;
@@ -180,7 +181,7 @@ function buildPlankDoor(o: LocalOpening, m: Materials): THREE.Group {
     g.add(box(u0, u1, y0, y1, -0.1, 0.008, m.blackPaint));
   frame(o.u0, o.u0 + f, o.sill, o.top);
   frame(o.u1 - f, o.u1, o.sill, o.top);
-  frame(o.u0, o.u1, o.top - f, o.top);
+  frame(o.u0 + f, o.u1 - f, o.top - f, o.top);
   g.add(box(o.u0 + f, o.u1 - f, o.sill, o.top - f, -0.08, -0.04, m.plankDoor, { along: 'x' }));
   for (const y of [o.sill + 0.18, (o.sill + o.top) / 2, o.top - 0.25]) {
     g.add(box(o.u0 + f, o.u1 - f, y - 0.06, y + 0.06, -0.04, -0.015, m.plankDoor, { along: 'y' }));
@@ -371,25 +372,76 @@ function buildStudWall(
   return g;
 }
 
+/**
+ * Det nya rummet färdigt: släta vitputsade väggar på båda sidor, golvlist och vitt
+ * dörrfoder. Avloppsrören är inbyggda och syns inte.
+ */
+function buildPlasteredRoom(m: Materials, door: { from: number; to: number; top: number }): THREE.Group {
+  const g = new THREE.Group();
+  const r = D.newRoom;
+  const L = D.room.length;
+  const t = r.wallThickness;
+  const x0 = r.frontX;
+  const z1 = r.depthZ;
+  const wall = (xa: number, xb: number, ya: number, yb: number, za: number, zb: number) =>
+    g.add(box(xa, xb, ya, yb, za, zb, m.masonry, { scale: 2.4 }));
+
+  // Väggen mot soffhörnan (under en takbjälke) och sidoväggen med dörröppningen.
+  wall(x0, x0 + t, 0, D.joistBottom, 0, z1);
+  const sx = x0 + t;
+  const top = D.ceiling.boards;
+  wall(sx, sx + door.from, 0, top, z1 - t, z1);
+  wall(sx + door.from, sx + door.to, door.top, top, z1 - t, z1);
+  wall(sx + door.to, L, 0, top, z1 - t, z1);
+
+  // Golvlist längs utsidorna.
+  const skirt = 0.08;
+  g.add(box(x0 - 0.012, x0, 0, skirt, 0, z1, m.whitePaint));
+  g.add(box(x0 - 0.012, sx + door.from, 0, skirt, z1, z1 + 0.012, m.whitePaint));
+  g.add(box(sx + door.to, L, 0, skirt, z1, z1 + 0.012, m.whitePaint));
+
+  // Dörrfoder på båda sidor om väggen.
+  const f = 0.07;
+  for (const [za, zb] of [
+    [z1, z1 + 0.014],
+    [z1 - t - 0.014, z1 - t],
+  ]) {
+    g.add(box(sx + door.from - f, sx + door.from, 0, door.top + f, za, zb, m.whitePaint));
+    g.add(box(sx + door.to, sx + door.to + f, 0, door.top + f, za, zb, m.whitePaint));
+    g.add(box(sx + door.from, sx + door.to, door.top, door.top + f, za, zb, m.whitePaint));
+  }
+  return g;
+}
+
 export function buildNewRoom(m: Materials): THREE.Group {
   const group = new THREE.Group();
   const r = D.newRoom;
   const L = D.room.length;
-
-  // Reglväggen mot soffhörnan står under en takbjälke.
-  const front = buildStudWall(r.depthZ, D.joistBottom, m);
-  front.position.set(r.frontX, 0, 0);
-  front.rotation.y = -Math.PI / 2;
-  group.add(front);
-  // Tvärregeln som sitter utanpå väggen i midjehöjd.
-  group.add(box(r.frontX - 0.022, r.frontX, 1.12, 1.19, 0.15, r.depthZ - 0.3, m.newWood, { along: 'z' }));
-
-  // Sidoväggen med dörren, mot gången till plywooddörren. Går upp mellan bjälkarna.
   const sideLength = L - r.frontX - r.wallThickness;
   const door = { from: r.doorFrom, to: r.doorFrom + r.doorWidth, top: r.doorHeight };
-  const side = buildStudWall(sideLength, D.ceiling.boards, m, door);
-  side.position.set(r.frontX + r.wallThickness, 0, r.depthZ);
-  group.add(side);
+
+  if (r.finish === 'plaster') {
+    group.add(buildPlasteredRoom(m, door));
+  } else {
+    // Reglväggen mot soffhörnan står under en takbjälke.
+    const front = buildStudWall(r.depthZ, D.joistBottom, m);
+    front.position.set(r.frontX, 0, 0);
+    front.rotation.y = -Math.PI / 2;
+    group.add(front);
+    // Tvärregeln som sitter utanpå väggen i midjehöjd.
+    group.add(box(r.frontX - 0.022, r.frontX, 1.12, 1.19, 0.15, r.depthZ - 0.3, m.newWood, { along: 'z' }));
+
+    // Sidoväggen med dörren, mot gången till plywooddörren. Går upp mellan bjälkarna.
+    const side = buildStudWall(sideLength, D.ceiling.boards, m, door);
+    side.position.set(r.frontX + r.wallThickness, 0, r.depthZ);
+    group.add(side);
+
+    // Avloppsrör i hörnet mot soffväggen.
+    const px = r.frontX - 0.09;
+    group.add(rod(new THREE.Vector3(px, 0, 0.1), new THREE.Vector3(px, D.joistBottom, 0.1), 0.055, m.drainPipe));
+    group.add(rod(new THREE.Vector3(px, 0.34, 0.12), new THREE.Vector3(px, 0.27, 1.0), 0.04, m.drainPipe));
+    group.add(rod(new THREE.Vector3(px, 0.27, 1.0), new THREE.Vector3(px, 0.266, 1.05), 0.048, m.drainPipe));
+  }
 
   // Dörrbladet: brun spegeldörr med mässingsknopp.
   const leaf = new THREE.Group();
@@ -412,12 +464,6 @@ export function buildNewRoom(m: Materials): THREE.Group {
     r.depthZ - r.wallThickness / 2,
   );
   group.add(leaf);
-
-  // Avloppsrör i hörnet mot soffväggen.
-  const px = r.frontX - 0.09;
-  group.add(rod(new THREE.Vector3(px, 0, 0.1), new THREE.Vector3(px, D.joistBottom, 0.1), 0.055, m.drainPipe));
-  group.add(rod(new THREE.Vector3(px, 0.34, 0.12), new THREE.Vector3(px, 0.27, 1.0), 0.04, m.drainPipe));
-  group.add(rod(new THREE.Vector3(px, 0.27, 1.0), new THREE.Vector3(px, 0.266, 1.05), 0.048, m.drainPipe));
 
   return group;
 }

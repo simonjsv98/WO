@@ -102,3 +102,8 @@ input[type='checkbox'] {
   opacity: 0.7;
   pointer-events: none;
 }
+
+/* På kvällen är bakgrunden mörk, så hjälptexten behöver vara ljus. */
+.evening #hint {
+  color: #f3f1ea;
+}

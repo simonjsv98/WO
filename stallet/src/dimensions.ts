@@ -95,6 +95,11 @@ export const newRoom = {
   doorFrom: 0.35,
   doorWidth: 0.87,
   doorHeight: 2.06,
+  /**
+   * 'plaster' = färdigt: vitputsade väggar med golvlist och dörrfoder, avloppsrören inbyggda.
+   * 'studs' = som i fotona: reglar, gul isolering och synliga avloppsrör.
+   */
+  finish: 'plaster' as 'plaster' | 'studs',
 };
 
 /**
@@ -182,4 +187,42 @@ export const furniture = {
     plinthHeight: 0.26,
     cheek: 0.12,
   },
+};
+
+/* --------------------------------------------------------------- belysning */
+
+/**
+ * Mysbelysningen. Varje lampa har ett läge på golvet (`x`, `z`); höjder är över golvet.
+ * `watts` är ungefär motsvarande glödlampa och styr hur starkt lampan lyser.
+ */
+export const lighting = {
+  /** Taklampor i sladd: linneskärm över matbordet, emaljskärmar över köksbänken. */
+  pendants: [
+    { x: furniture.dining.x, z: furniture.dining.z, bottom: 1.5, shade: 'linen' as const, watts: 60 },
+    { x: 0.42, z: 6.45, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
+    { x: 1.0, z: 7.58, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
+    { x: 2.2, z: 7.58, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
+  ],
+  /** Golvlampa vid soffans ena gavel. */
+  floorLamps: [{ x: 3.45, z: 0.55, watts: 40 }],
+  /** Små lampor i fönsternischerna – en per fönster i soff- och matdelen. */
+  windowLamps: ['S1', 'S2', 'A3', 'B1'],
+  /** Bordslampa på vitrinskåpets bänkskiva. */
+  tableLamps: [{ x: 4.5, y: 0.935, z: room.width - 0.3, watts: 25 }],
+  /** Vägglampor: vid vita dörren, vid plywooddörren och i förrådshörnan. */
+  sconces: [
+    { wall: 'kitchenGable' as const, at: 4.35, y: 1.6, watts: 25 },
+    { wall: 'farGable' as const, at: 4.45, y: 1.6, watts: 25 },
+    { wall: 'kitchenWall' as const, at: 8.9, y: 1.6, watts: 25 },
+  ],
+  /** Levande ljus: tre på matbordet och två på soffbordet. */
+  candles: [
+    { x: furniture.dining.x - 0.25, y: 0.76, z: furniture.dining.z, height: 0.22 },
+    { x: furniture.dining.x, y: 0.76, z: furniture.dining.z + 0.06, height: 0.27 },
+    { x: furniture.dining.x + 0.25, y: 0.76, z: furniture.dining.z - 0.03, height: 0.19 },
+    { x: furniture.coffeeTable.x - 0.15, y: 0.46, z: furniture.coffeeTable.z, height: 0.12 },
+    { x: furniture.coffeeTable.x + 0.12, y: 0.46, z: furniture.coffeeTable.z + 0.08, height: 0.08 },
+  ],
+  /** Ljusslinga med klotlampor längs bärlinan, på sidan mot soff- och matdelen. */
+  stringLights: { fromX: 0.4, toX: newRoom.frontX - 0.3, spacing: 0.45 },
 };

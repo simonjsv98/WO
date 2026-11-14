@@ -4,6 +4,7 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import * as D from './dimensions';
 import { buildNewRoom, buildShell, buildStructure } from './build';
 import { buildFurniture } from './furniture';
+import { buildLighting } from './lighting';
 import { createMaterials } from './textures';
 import './style.css';
 
@@ -32,6 +33,21 @@ const shell = buildShell(materials);
 const structure = buildStructure(materials);
 const newRoom = buildNewRoom(materials);
 const furniture = buildFurniture(materials);
+const lighting = buildLighting(materials);
+
+// Namn som följer med i exporten, så att delarna går att hitta i andra program.
+shell.floor.name = 'Golv';
+shell.sofaWall.name = 'Soffvagg';
+shell.kitchenWall.name = 'Langvagg';
+shell.kitchenGable.name = 'Koksgavel';
+shell.farGable.name = 'Bortre gavel';
+structure.boards.name = 'Takbrador';
+structure.joists.name = 'Takbjalkar';
+structure.frame.name = 'Barlina';
+structure.lamps.name = 'Lysror';
+newRoom.name = 'Nya rummet';
+furniture.name = 'Mobler';
+lighting.group.name = 'Lampor';
 
 /** Allt som hör till själva byggnaden – det är den här gruppen som exporteras. */
 const model = new THREE.Group();
@@ -48,6 +64,7 @@ model.add(
   structure.lamps,
   newRoom,
   furniture,
+  lighting.group,
 );
 scene.add(model);
 
@@ -58,14 +75,73 @@ scene.add(ground);
 
 /* -------------------------------------------------------------------- ljus */
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xd9d3c6, 1.35));
+const hemisphere = new THREE.HemisphereLight(0xffffff, 0xd9d3c6, 1.35);
 const sun = new THREE.DirectionalLight(0xfff4e0, 0.9);
 sun.position.set(-6, 14, -5);
-scene.add(sun);
-for (const lamp of D.lamps) {
+scene.add(hemisphere, sun);
+
+// Dagsljus: lysrören. Kvällsljus: mysbelysningen.
+const fluorescents = D.lamps.map((lamp) => {
   const light = new THREE.PointLight(0xfff0d0, 3, 8, 1.6);
   light.position.set(lamp.x, lamp.top - 0.25, lamp.z);
-  scene.add(light);
+  return light;
+});
+
+/**
+ * Varje lampa får en egen ljuskälla. Ljusslingan och de levande ljusen slås ihop till
+ * några få, så att antalet ljuskällor håller sig rimligt även på en telefon.
+ */
+function warmLights(): THREE.PointLight[] {
+  const lights: THREE.PointLight[] = [];
+  const add = (position: THREE.Vector3, color: number, watts: number) => {
+    const light = new THREE.PointLight(color, 0, 0, 2);
+    light.position.copy(position);
+    light.userData.watts = watts;
+    lights.push(light);
+  };
+  const merge = (kind: string, groups: number) => {
+    const list = lighting.sources.filter((s) => s.kind === kind);
+    const size = Math.ceil(list.length / groups);
+    for (let i = 0; i < list.length; i += size) {
+      const part = list.slice(i, i + size);
+      const center = new THREE.Vector3();
+      for (const s of part) center.add(new THREE.Vector3(...s.position));
+      center.multiplyScalar(1 / part.length);
+      add(center, part[0].color, part.reduce((sum, s) => sum + s.watts, 0));
+    }
+  };
+  for (const s of lighting.sources) {
+    if (s.kind === 'lamp' || s.kind === 'fire') add(new THREE.Vector3(...s.position), s.color, s.watts);
+  }
+  merge('string', 3);
+  merge('candle', 3);
+  return lights;
+}
+const cozy = warmLights();
+scene.add(...fluorescents, ...cozy);
+
+/** Växlar mellan dagsljus med lysrör och kvällsljus med mysbelysning. */
+function applyMood(evening: boolean) {
+  (scene.background as THREE.Color).set(evening ? 0x121a2a : 0xcfd6d4);
+  materials.ground.color.set(evening ? 0x1c2620 : 0x7f8a6c);
+  hemisphere.color.set(evening ? 0x7088b8 : 0xffffff);
+  hemisphere.groundColor.set(evening ? 0x3a3631 : 0xd9d3c6);
+  hemisphere.intensity = evening ? 0.42 : 1.35;
+  sun.color.set(evening ? 0x8fa6d8 : 0xfff4e0);
+  sun.intensity = evening ? 0.12 : 0.9;
+  renderer.toneMappingExposure = evening ? 1.25 : 1.05;
+  document.body.classList.toggle('evening', evening);
+
+  for (const light of fluorescents) light.intensity = evening ? 0 : 3;
+  materials.tube.emissiveIntensity = evening ? 0 : 1.6;
+  for (const light of cozy) light.intensity = evening ? light.userData.watts * 0.085 : 0;
+  materials.linenShade.emissiveIntensity = evening ? 0.9 : 0.05;
+  materials.enamelInside.emissiveIntensity = evening ? 0.6 : 0.03;
+  materials.bulb.emissiveIntensity = evening ? 2.2 : 0.1;
+  materials.flame.emissiveIntensity = evening ? 2.6 : 0.4;
+  materials.ember.emissiveIntensity = evening ? 1.6 : 0.5;
+  materials.glass.emissive.set(evening ? 0x24324f : 0xdfeaea);
+  materials.glass.color.set(evening ? 0x5a6a88 : 0xeaf2f2);
 }
 
 /* --------------------------------------------------------------- etiketter */
@@ -171,7 +247,7 @@ function setView(view: View) {
 
 /* ------------------------------------------------------------------- panel */
 
-const state = { cutaway: true, joists: true, furniture: true, labels: true };
+const state = { evening: true, cutaway: true, joists: true, furniture: true, labels: true };
 
 const panel = document.querySelector<HTMLDivElement>('#panel')!;
 panel.innerHTML = `
@@ -193,6 +269,7 @@ for (const view of views) {
 
 const toggleRow = panel.querySelector('[data-toggles]')!;
 const toggles: [keyof typeof state, string][] = [
+  ['evening', 'Kvällsljus'],
   ['cutaway', 'Öppna upp utifrån'],
   ['joists', 'Takbjälkar'],
   ['furniture', 'Möbler'],
@@ -215,24 +292,28 @@ document.querySelector<HTMLDivElement>('#hint')!.textContent =
 // så där visas ingen knapp som inte skulle göra något.
 if (window.self !== window.top) panel.querySelector('[data-export-row]')!.remove();
 
-panel.querySelector('[data-export]')?.addEventListener('click', () => {
-  const visibility = model.children.map((child) => child.visible);
+/** Sant medan exporten pågår, så att inget göms undan mitt i den. */
+let exporting = false;
+
+panel.querySelector('[data-export]')?.addEventListener('click', async () => {
+  // Exporten läser modellen i flera steg. Allt ska vara med, även det som just nu är
+  // bortvalt för att kameran står utanför.
+  exporting = true;
   model.children.forEach((child) => (child.visible = true));
-  furniture.visible = state.furniture;
-  new GLTFExporter().parse(
-    model,
-    (result) => {
-      const blob = new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'stallet.glb';
-      link.click();
-      URL.revokeObjectURL(link.href);
-    },
-    (error) => console.error(error),
-    { binary: true },
-  );
-  model.children.forEach((child, i) => (child.visible = visibility[i]));
+  furniture.visible = lighting.group.visible = state.furniture;
+  try {
+    const result = await new GLTFExporter().parseAsync(model, { binary: true });
+    const blob = new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'stallet.glb';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    exporting = false;
+  }
 });
 
 /* ---------------------------------------------------------- gå runt (WASD) */
@@ -258,8 +339,11 @@ function walk(dt: number) {
 
 /* ------------------------------------------------------------------- loop */
 
+let mood: boolean | null = null;
+
 /** Göm det som står mellan kameran och rummet, så att man kan titta in utifrån. */
 function updateCutaway() {
+  if (exporting) return;
   const p = camera.position;
   const open = state.cutaway;
   shell.sofaWall.visible = !open || p.z > 0;
@@ -270,6 +354,11 @@ function updateCutaway() {
   structure.boards.visible = !(open && above);
   structure.joists.visible = state.joists;
   furniture.visible = state.furniture;
+  lighting.group.visible = state.furniture;
+  if (mood !== state.evening) {
+    mood = state.evening;
+    applyMood(mood);
+  }
   structure.lamps.visible = state.joists || !above;
   // Etiketterna är till för vyerna utifrån; inne i rummet skulle de bara sväva i vägen.
   const inside = p.x > 0 && p.x < L && p.z > 0 && p.z < W && !above;
@@ -304,6 +393,7 @@ Object.assign(window, {
     views,
     setView,
     state,
+    sources: lighting.sources,
     look(position: [number, number, number], target: [number, number, number], fov: number) {
       setView({ name: '', position, target, fov });
     },
