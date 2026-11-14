@@ -20,13 +20,15 @@ Kvällsljus, renderat med Blender Cycles i 1920 × 1080.
 | --- | --- |
 | ![Soffhörnan](renders/soffhornan.jpg) | ![Matplatsen](renders/matplatsen.jpg) |
 
-| Kaminen | Köket |
+| Vedspisen | Kaminen |
 | --- | --- |
-| ![Kaminen](renders/kaminen.jpg) | ![Köket](renders/koket.jpg) |
+| ![Vedspisen](renders/vedspisen.jpg) | ![Kaminen](renders/kaminen.jpg) |
 
-| Längs rummet | Översikt |
+| Köket | Längs rummet |
 | --- | --- |
-| ![Längs rummet](renders/langs-rummet.jpg) | ![Översikt](renders/oversikt.jpg) |
+| ![Köket](renders/koket.jpg) | ![Längs rummet](renders/langs-rummet.jpg) |
+
+![Översikt](renders/oversikt.jpg)
 
 ## Kom igång
 
@@ -80,8 +82,8 @@ Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet o
 - **Matgrupp** – bord med sex pinnstolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på tvären, med långsidan ut från soffväggen.
 - **Soffgrupp** – i U-form: tresitssoffan med ryggen mot nya rummet, en fåtölj med ryggen mot soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.
 - **Kök** – öppen furubänk i vinkel med ugn, kokplatta, mikro och diskho, redskapslist på väggen, kyl/frys och det blå vitrinskåpet.
-- **Vedspis** – Husqvarna-spisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd (häll på 0,86 m) och inmurad i vitputsat murverk, med murstock i hörnet upp till taket.
-- **Braskamin** – gjutjärnskamin vid stolpraden, mellan andra och tredje stolpen, vänd mot soff- och matdelen, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det ungefär 0,2 m från kaminens rygg till bärlinan, 0,25 m från röret till bärlinan och 0,3 m till närmaste stolpe och takbjälke – allt är trä, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
+- **Vedspis** – Husqvarna-spisen i hörnet köksgavel / soffvägg, 45 grader snett över hörnet och vänd ut mot rummet. Den är upplyft till arbetshöjd (häll på 0,86 m) och inmurad i vitputsat murverk, med murstock innerst i hörnet upp till taket och en murad avställningsyta ut mot väggen på var sida. Murverket når knappt 1,2 m ut längs vardera väggen.
+- **Braskamin** – gjutjärnskamin vid stolpraden, mitt mellan andra och tredje stolpen. Den står rakt, med luckan mot soffväggen och soffgruppen, och har eldstadsplan och rökrör rakt upp genom taket. I modellen är det ungefär 0,2 m från kaminens rygg till bärlinan, 0,25 m från röret till bärlinan och 0,25 m till stolparna på var sida – allt är trä, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
 
 ## Belysning
 

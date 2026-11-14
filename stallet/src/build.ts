@@ -8,7 +8,7 @@ export type Axis = 'x' | 'y' | 'z';
  * Lägger ut texturen efter verkliga mått i stället för per sida, så att mönstret
  * hänger ihop över skarvar. `along` är virkets längdriktning (ådringen följer den).
  */
-function projectUV(geo: THREE.BufferGeometry, scaleU: number, scaleV: number, along: Axis) {
+export function projectUV(geo: THREE.BufferGeometry, scaleU: number, scaleV: number, along: Axis) {
   const pos = geo.attributes.position;
   const nor = geo.attributes.normal;
   const uv = geo.attributes.uv;

@@ -134,7 +134,7 @@ export const furniture = {
    * Matbord med sex stolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på
    * tvären, med långsidan ut från soffväggen.
    */
-  dining: { x: 2.0, z: 2.2, turn: 90, tableLength: 1.8, tableWidth: 0.9 },
+  dining: { x: 2.3, z: 2.4, turn: 90, tableLength: 1.8, tableWidth: 0.9 },
 
   /**
    * Soffgruppen i U-form: soffan med ryggen mot nya rummet, en fåtölj med ryggen mot
@@ -164,20 +164,18 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn vid stolpraden, mellan andra och tredje stolpen, vänd mot
-   * soff- och matdelen. Rökröret går rakt upp genom taket, strax intill bärlinan
-   * (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   * Braskamin i gjutjärn vid stolpraden, mitt mellan andra och tredje stolpen. Den står
+   * rakt, med luckan mot soffväggen och soffgruppen. Rökröret går rakt upp genom taket,
+   * strax intill bärlinan (`flue: 'wall'` drar det i stället bakåt genom en vägg).
    */
-  stove: { x: 4.0, z: 4.15, turn: 200, flue: 'ceiling' as 'ceiling' | 'wall' },
+  stove: { x: 4.1, z: 4.15, turn: 180, flue: 'ceiling' as 'ceiling' | 'wall' },
 
   /**
    * Husqvarna-vedspisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd och inmurad
-   * i vitputsat murverk med murstock i hörnet. Ryggen står mot soffväggen.
+   * i vitputsat murverk. Spisen står 45 grader snett över hörnet, vänd ut mot rummet, med
+   * murstocken innerst i hörnet och murade avställningsytor ut mot väggarna på var sida.
    */
   cookstove: {
-    /** Murstockens bredd längs soffväggen och djup ut från den. */
-    chimneyWidth: 0.38,
-    chimneyDepth: 0.5,
     /** Själva järnspisens bredd, djup och höjd till hällen. */
     width: 0.76,
     depth: 0.56,
@@ -185,8 +183,22 @@ export const furniture = {
     /** Murad sockel under spisen och murade kinder på sidorna. */
     plinthHeight: 0.26,
     cheek: 0.12,
+    /** Murad kant bakom spisen och hur långt murverket går förbi spisens framsida. */
+    rim: 0.08,
+    lip: 0.03,
+    /** Murstockens sida (kvadratisk, innerst i hörnet). */
+    chimney: 0.4,
   },
 };
+
+/** Hur långt vedspisens murverk når ut längs vardera väggen från hörnet. */
+export const cookstoveReach =
+  (furniture.cookstove.width +
+    2 * furniture.cookstove.cheek +
+    furniture.cookstove.rim +
+    furniture.cookstove.depth +
+    furniture.cookstove.lip) /
+  Math.SQRT2;
 
 /* --------------------------------------------------------------- belysning */
 

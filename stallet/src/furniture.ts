@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as D from './dimensions';
-import { box, rod } from './build';
+import { box, projectUV, rod } from './build';
 import type { Materials } from './textures';
 
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
@@ -294,61 +294,87 @@ function buildStove(m: Materials): THREE.Group {
 
 /* -------------------------------------------------------------- vedspis */
 
+/** Murad kropp med valfri planform: hörnpunkter (x, z) på golvet, från höjd y0 till y1. */
+function prism(points: [number, number][], y0: number, y1: number, material: THREE.Material) {
+  const shape = new THREE.Shape(points.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: y1 - y0, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, y0, 0);
+  projectUV(geo, 2.4, 2.4, 'x');
+  return new THREE.Mesh(geo, material);
+}
+
 /**
- * Inmurad vedspis i hörnet. Byggs i hörnets koordinater: x längs soffväggen ut från
- * köksgaveln, z ut i rummet. Murstocken står innerst i hörnet och spisen bredvid.
+ * Inmurad vedspis, 45 grader snett över hörnet köksgavel / soffvägg. Murverket fyller
+ * hörnet: murstocken innerst, spisen i den sneda framsidan och en murad avställningsyta
+ * ut mot väggen på var sida.
  */
 function buildCookstove(m: Materials): THREE.Group {
   const g = new THREE.Group();
   const c = D.furniture.cookstove;
   const iron = m.castIron;
-  const white = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) =>
-    g.add(box(x0, x1, y0, y1, z0, z1, m.masonry, { scale: 2.4 }));
-
-  // Murstock från golv till tak.
-  white(0, c.chimneyWidth, 0, D.ceiling.boards, 0, c.chimneyDepth);
-
-  // Murverket som spisen sitter i: sockel, två kinder och en kant mot väggen.
-  const a = c.chimneyWidth;
-  const s0 = a + c.cheek;
-  const s1 = s0 + c.width;
-  const b = s1 + c.cheek;
-  const back = 0.08;
-  const front = back + c.depth;
   const top = c.topHeight;
-  white(a, b, 0, c.plinthHeight, 0, front + 0.03);
-  white(a, s0, c.plinthHeight, top, 0, front + 0.03);
-  white(s1, b, c.plinthHeight, top, 0, front + 0.03);
+  const total = c.width + 2 * c.cheek;
+  const frontDepth = c.rim + c.depth + c.lip;
+
+  // Planen sedd uppifrån, med hörnet i origo. Spisens bakkant går snett mellan väggarna
+  // och framsidan ligger `frontDepth` längre ut längs diagonalen.
+  const k = Math.SQRT1_2;
+  const along = total * k;
+  const reach = D.cookstoveReach;
+  const out = frontDepth * k;
+
+  // Murstock från golv till tak, och murverket bakom spisen upp till kanten.
+  g.add(prism([[0, 0], [c.chimney, 0], [c.chimney, c.chimney], [0, c.chimney]], 0, D.ceiling.boards, m.masonry));
+  g.add(prism([[0, 0], [along, 0], [0, along]], 0, top + 0.12, m.masonry));
+  // Sockeln under spisen, och avställningsytorna mellan spisens sidor och väggarna.
+  g.add(prism([[along, 0], [reach, out], [out, reach], [0, along]], 0, c.plinthHeight, m.masonry));
+  g.add(prism([[along, 0], [reach, 0], [reach, out]], 0, top, m.masonry));
+  g.add(prism([[0, along], [out, reach], [0, reach]], 0, top, m.masonry));
+
+  // Resten byggs rakt och vrids sedan 45 grader: x längs spisens framsida, z ut från bakkanten.
+  const unit = new THREE.Group();
+  unit.position.set(along / 2, 0, along / 2);
+  unit.rotation.y = Math.PI / 4;
+  g.add(unit);
+  const s0 = -c.width / 2;
+  const s1 = c.width / 2;
+  const back = c.rim;
+  const front = back + c.depth;
+  const white = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) =>
+    unit.add(box(x0, x1, y0, y1, z0, z1, m.masonry, { scale: 2.4 }));
+  white(s0 - c.cheek, s0, c.plinthHeight, top, 0, frontDepth);
+  white(s1, s1 + c.cheek, c.plinthHeight, top, 0, frontDepth);
   white(s0, s1, c.plinthHeight, top + 0.12, 0, back);
 
   // Järnspisen: kropp, häll med ringar och blank stång längs framkanten.
-  g.add(box(s0, s1, c.plinthHeight, top - 0.03, back, front, iron));
-  g.add(box(s0 - 0.015, s1 + 0.015, top - 0.03, top, back, front + 0.05, iron));
+  unit.add(box(s0, s1, c.plinthHeight, top - 0.03, back, front, iron));
+  unit.add(box(s0 - 0.015, s1 + 0.015, top - 0.03, top, back, front + 0.05, iron));
   for (const [x, r] of [
     [s0 + 0.2, 0.115],
     [s0 + 0.5, 0.095],
   ]) {
-    g.add(rod(v(x, top, back + 0.3), v(x, top + 0.006, back + 0.3), r, m.hearth));
-    g.add(rod(v(x, top, back + 0.3), v(x, top + 0.009, back + 0.3), r * 0.45, iron));
+    unit.add(rod(v(x, top, back + 0.3), v(x, top + 0.006, back + 0.3), r, m.hearth));
+    unit.add(rod(v(x, top, back + 0.3), v(x, top + 0.009, back + 0.3), r * 0.45, iron));
   }
-  g.add(rod(v(s0 + 0.02, top - 0.05, front + 0.085), v(s1 - 0.02, top - 0.05, front + 0.085), 0.011, m.steel));
+  unit.add(rod(v(s0 + 0.02, top - 0.05, front + 0.085), v(s1 - 0.02, top - 0.05, front + 0.085), 0.011, m.steel));
   for (const x of [s0 + 0.04, s1 - 0.04]) {
-    g.add(rod(v(x, top - 0.05, front + 0.03), v(x, top - 0.05, front + 0.085), 0.008, m.steel));
+    unit.add(rod(v(x, top - 0.05, front + 0.03), v(x, top - 0.05, front + 0.085), 0.008, m.steel));
   }
 
   // Framsidan: eldstadslucka och asklucka till vänster, ugnslucka till höger.
   const face = (x0: number, x1: number, y0: number, y1: number) =>
-    g.add(box(x0, x1, y0, y1, front, front + 0.015, m.hearth));
+    unit.add(box(x0, x1, y0, y1, front, front + 0.015, m.hearth));
   face(s0 + 0.06, s0 + 0.28, top - 0.3, top - 0.1);
   face(s0 + 0.06, s0 + 0.28, top - 0.47, top - 0.35);
   face(s0 + 0.36, s1 - 0.06, top - 0.47, top - 0.12);
-  g.add(rod(v(s0 + 0.42, top - 0.17, front + 0.035), v(s1 - 0.12, top - 0.17, front + 0.035), 0.009, m.steel));
-  g.add(rod(v(s0 + 0.17, top - 0.2, front + 0.015), v(s0 + 0.17, top - 0.2, front + 0.04), 0.014, m.steel));
-  g.add(box(s0 + 0.46, s1 - 0.16, top - 0.36, top - 0.31, front + 0.015, front + 0.02, m.steel));
+  unit.add(rod(v(s0 + 0.42, top - 0.17, front + 0.035), v(s1 - 0.12, top - 0.17, front + 0.035), 0.009, m.steel));
+  unit.add(rod(v(s0 + 0.17, top - 0.2, front + 0.015), v(s0 + 0.17, top - 0.2, front + 0.04), 0.014, m.steel));
+  unit.add(box(s0 + 0.46, s1 - 0.16, top - 0.36, top - 0.31, front + 0.015, front + 0.02, m.steel));
 
-  // Rökröret från hällens bakkant in i murstocken.
-  g.add(rod(v(s0 + 0.12, top, back + 0.09), v(s0 + 0.12, top + 0.42, back + 0.09), 0.055, iron));
-  g.add(rod(v(s0 + 0.175, top + 0.42, back + 0.09), v(a - 0.02, top + 0.42, back + 0.09), 0.055, iron));
+  // Rökröret från hällens bakkant rakt bakåt in i murstocken.
+  unit.add(rod(v(0, top, back + 0.11), v(0, top + 0.42, back + 0.11), 0.055, iron));
+  unit.add(rod(v(0, top + 0.42, back + 0.165), v(0, top + 0.42, -0.02), 0.055, iron));
   return g;
 }
 

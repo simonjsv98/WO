@@ -158,7 +158,7 @@ export function buildLighting(m: Materials): Lighting {
   sources.push({ kind: 'fire', position: [stoveX, 0.5, stoveZ], color: 0xff7a2e, watts: 25 });
 
   // En lykta med ett ljus i, på golvet bredvid vedspisen.
-  const lx = D.furniture.cookstove.chimneyWidth + D.furniture.cookstove.width + 0.55;
+  const lx = D.cookstoveReach + 0.3;
   group.add(box(lx - 0.09, lx + 0.09, 0, 0.012, 0.21, 0.39, m.cord));
   group.add(box(lx - 0.09, lx + 0.09, 0.3, 0.312, 0.21, 0.39, m.cord));
   for (const [dx, dz] of [
