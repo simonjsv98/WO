@@ -311,7 +311,6 @@ export function createMaterials() {
     steel: flat(0xa7abad, 0.45, 0.6),
     drainPipe: flat(0x7b7f82, 0.6),
     lintel: flat(0x8a8377, 1),
-    groove: flat(0x3d3a36, 1),
     brass: flat(0xb08a3c, 0.35, 0.8),
     fixture: flat(0xf3f1ea, 0.5),
     tube: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff3d6, emissiveIntensity: 1.6 }),

@@ -225,10 +225,6 @@ export function buildShell(m: Materials): Shell {
 
   const floor = new THREE.Group();
   floor.add(box(-t, L + t, -0.15, 0, -t, W + t, m.concrete, { scale: 4 }));
-  for (const z of D.floorJoints) {
-    floor.add(box(0.3, D.newRoom.frontX - 0.3, 0, 0.004, z - 0.02, z + 0.02, m.groove));
-  }
-
   // Rampen upp till plankdörren.
   const door = D.kitchenWall[0];
   const angle = Math.atan2(D.ramp.rise, D.ramp.length);

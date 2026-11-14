@@ -102,12 +102,6 @@ export const newRoom = {
   finish: 'plaster' as 'plaster' | 'studs',
 };
 
-/**
- * Skarvar i golvet längs stolpraden (z-lägen) – kanterna på den gamla gången/rännan
- * från när det var stall.
- */
-export const floorJoints = [beam.z - 0.17, beam.z - 1.05];
-
 /** Träramp upp till plankdörren. */
 export const ramp = { width: 1.15, length: 1.9, rise: 0.3 };
 

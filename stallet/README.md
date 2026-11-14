@@ -73,7 +73,7 @@ Förenklingar:
 - Takbjälkarna ligger med jämnt avstånd (0,95 m) och går hela vägen över rummet. I verkligheten är de skarvade över bärlinan och ligger lite ojämnt.
 - Murarna är 0,4 m tjocka överallt.
 - Det nya rummet visas färdigt: vitputsade väggar, golvlist och dörrfoder, med avloppsrören inbyggda. Sätt `newRoom.finish` till `'studs'` för att se det som i fotona, med reglar och isolering. Insidan är tom.
-- Golvet är plant, med bara de två skarvarna längs stolpraden markerade.
+- Golvet är plant och slätt, utan nivåskillnader och skarvar.
 
 ## Möbler
 
