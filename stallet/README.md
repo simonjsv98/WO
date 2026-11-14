@@ -84,20 +84,20 @@ Förenklingar:
 
 ## Möbler
 
-Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet och vridning i grader – så det går fort att flytta runt saker. Matgruppen, soffgruppen och köket står där de står i skanningen.
+Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet och vridning i grader – så det går fort att flytta runt saker. Matgruppen och köket står där de står i skanningen.
 
 - **Matgrupp** – bord med sex pinnstolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på tvären, med långsidan ut från soffväggen.
-- **Soffgrupp** – i U-form: tresitssoffan med ryggen mot nya rummet, en fåtölj med ryggen mot soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.
+- **Soffgrupp** – tresitssoffan mot soffväggen, soffbord och två fåtöljer vända mot soffan.
 - **Kök** – öppen furubänk i vinkel med ugn, kokplatta, mikro och diskho, redskapslist på väggen, kyl/frys och det blå vitrinskåpet.
 - **Vedspis** – Husqvarna-spisen i hörnet köksgavel / soffvägg, 45 grader snett över hörnet och vänd ut mot rummet. Den är upplyft till arbetshöjd (häll på 0,86 m) och inmurad i vitputsat murverk, med murstock innerst i hörnet upp till taket och en murad avställningsyta ut mot väggen på var sida. Murverket når knappt 1,2 m ut längs vardera väggen.
-- **Braskamin** – gjutjärnskamin framför tredje stolpen i stolpraden (räknat från köksgaveln), med ryggen nästan intill stolpen och luckan rakt mot soffväggen och soffgruppen, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det ungefär 5 cm från kaminens rygg till stolpen och 6 cm från rökröret till bärlinan och närmaste takbjälke. Allt det är trä, så en riktig braskamin kan inte stå så utan avskärmning – avstånden till brännbart material måste kontrolleras först.
+- **Braskamin** – gjutjärnskamin mot nya rummets vägg mot soffhörnan, 1,8 m ut från soffväggen och vänd ut mot rummet, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det 0,3 m från kaminens rygg till väggen och ungefär 0,3 m från röret till närmaste takbjälke, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
 
 ## Belysning
 
 Lamporna står under `lighting` i `src/dimensions.ts`.
 
 - Taklampa med linneskärm över matbordet och tre emaljskärmar över köksbänken.
-- Golvlampa vid fåtöljen mot soffväggen, bordslampa på vitrinskåpet och små lampor i fyra av fönsternischerna.
+- Golvlampa vid soffan, bordslampa på vitrinskåpet och små lampor i fyra av fönsternischerna.
 - Tre vägglampor: vid vita dörren, vid plywooddörren och i förrådshörnan.
 - Ljusslinga med klotlampor längs bärlinan.
 - Levande ljus på matbordet och soffbordet, en lykta vid vedspisen och skenet från braskaminen.

@@ -155,15 +155,12 @@ export const furniture = {
    */
   dining: { x: 2.15, z: 1.8, turn: 90, tableLength: 1.9, tableWidth: 0.85 },
 
-  /**
-   * Soffgruppen i U-form: soffan med ryggen mot nya rummet, en fåtölj med ryggen mot
-   * soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.
-   */
-  sofa: { x: 5.87, z: 1.55, turn: -90, width: 2.05 },
-  coffeeTable: { x: 4.87, z: 1.57, turn: 90 },
+  /** Soffa mot soffväggen, soffbord och två fåtöljer vända mot soffan. */
+  sofa: { x: 4.35, z: 0.55, turn: 0, width: 2.05 },
+  coffeeTable: { x: 4.35, z: 1.75, turn: 0 },
   armchairs: [
-    { x: 4.1, z: 0.95, turn: 10 },
-    { x: 4.05, z: 2.4, turn: 110 },
+    { x: 3.6, z: 3.0, turn: 168 },
+    { x: 5.1, z: 3.05, turn: 192 },
   ],
 
   /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
@@ -183,17 +180,15 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn framför tredje stolpen i stolpraden (räknat från köksgaveln), där
-   * elkaminen står i skanningen. Ryggen står nästan intill stolpen (ungefär 5 cm luft) och
-   * luckan rakt mot soffväggen och soffgruppen. Röret går rakt upp genom taket, tätt
-   * intill bärlinan (`flue: 'wall'` drar det i stället bakåt genom en vägg).
-   *
-   * Byt stolpe genom att ändra index i `beam.postXs[2]` (0 är stolpen närmast köksgaveln).
+   * Braskamin i gjutjärn mot nya rummets vägg mot soffhörnan, 1,8 m ut från soffväggen
+   * (vid tredje regeln i väggen) och vänd ut mot rummet. Ryggen står 0,3 m från väggen;
+   * 0,22 är halva kaminens djup. Rökröret går rakt upp genom taket (`flue: 'wall'` drar
+   * det i stället bakåt genom en vägg).
    */
   stove: {
-    x: beam.postXs[2],
-    z: beam.z - beam.postSize / 2 - 0.05 - 0.22,
-    turn: 180,
+    x: newRoom.frontX - 0.3 - 0.22,
+    z: 3 * newRoom.studSpacing + 0.0225,
+    turn: -90,
     flue: 'ceiling' as 'ceiling' | 'wall',
   },
 
@@ -241,8 +236,8 @@ export const lighting = {
     { x: 1.0, z: room.width - 0.42, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
     { x: 2.3, z: room.width - 0.42, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
   ],
-  /** Golvlampa vid soffväggen, mellan fåtöljen och soffan. */
-  floorLamps: [{ x: 4.95, z: 0.4, watts: 40 }],
+  /** Golvlampa vid soffans ena gavel. */
+  floorLamps: [{ x: 3.05, z: 0.45, watts: 40 }],
   /** Små lampor i fönsternischerna – en per fönster i soff- och matdelen. */
   windowLamps: ['S1', 'S2', 'A3', 'B1'],
   /** Bordslampa på vitrinskåpets bänkskiva. */
