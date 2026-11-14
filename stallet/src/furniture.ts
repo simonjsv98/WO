@@ -253,11 +253,11 @@ function buildKitchen(m: Materials): THREE.Group {
 function buildStove(m: Materials): THREE.Group {
   const g = new THREE.Group();
   const iron = m.castIron;
-  const w = 0.29;
+  const w = 0.26;
   const d = 0.22;
 
   // Eldstadsplan på golvet.
-  g.add(box(-0.42, 0.42, 0, 0.006, -0.36, 0.62, m.hearth));
+  g.add(box(-0.38, 0.38, 0, 0.006, -0.36, 0.62, m.hearth));
 
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
@@ -285,6 +285,66 @@ function buildStove(m: Materials): THREE.Group {
   return g;
 }
 
+/* -------------------------------------------------------------- vedspis */
+
+/**
+ * Inmurad vedspis i hörnet. Byggs i hörnets koordinater: x längs soffväggen ut från
+ * köksgaveln, z ut i rummet. Murstocken står innerst i hörnet och spisen bredvid.
+ */
+function buildCookstove(m: Materials): THREE.Group {
+  const g = new THREE.Group();
+  const c = D.furniture.cookstove;
+  const iron = m.castIron;
+  const white = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) =>
+    g.add(box(x0, x1, y0, y1, z0, z1, m.masonry, { scale: 2.4 }));
+
+  // Murstock från golv till tak.
+  white(0, c.chimneyWidth, 0, D.ceiling.boards, 0, c.chimneyDepth);
+
+  // Murverket som spisen sitter i: sockel, två kinder och en kant mot väggen.
+  const a = c.chimneyWidth;
+  const s0 = a + c.cheek;
+  const s1 = s0 + c.width;
+  const b = s1 + c.cheek;
+  const back = 0.08;
+  const front = back + c.depth;
+  const top = c.topHeight;
+  white(a, b, 0, c.plinthHeight, 0, front + 0.03);
+  white(a, s0, c.plinthHeight, top, 0, front + 0.03);
+  white(s1, b, c.plinthHeight, top, 0, front + 0.03);
+  white(s0, s1, c.plinthHeight, top + 0.12, 0, back);
+
+  // Järnspisen: kropp, häll med ringar och blank stång längs framkanten.
+  g.add(box(s0, s1, c.plinthHeight, top - 0.03, back, front, iron));
+  g.add(box(s0 - 0.015, s1 + 0.015, top - 0.03, top, back, front + 0.05, iron));
+  for (const [x, r] of [
+    [s0 + 0.2, 0.115],
+    [s0 + 0.5, 0.095],
+  ]) {
+    g.add(rod(v(x, top, back + 0.3), v(x, top + 0.006, back + 0.3), r, m.hearth));
+    g.add(rod(v(x, top, back + 0.3), v(x, top + 0.009, back + 0.3), r * 0.45, iron));
+  }
+  g.add(rod(v(s0 + 0.02, top - 0.05, front + 0.085), v(s1 - 0.02, top - 0.05, front + 0.085), 0.011, m.steel));
+  for (const x of [s0 + 0.04, s1 - 0.04]) {
+    g.add(rod(v(x, top - 0.05, front + 0.03), v(x, top - 0.05, front + 0.085), 0.008, m.steel));
+  }
+
+  // Framsidan: eldstadslucka och asklucka till vänster, ugnslucka till höger.
+  const face = (x0: number, x1: number, y0: number, y1: number) =>
+    g.add(box(x0, x1, y0, y1, front, front + 0.015, m.hearth));
+  face(s0 + 0.06, s0 + 0.28, top - 0.3, top - 0.1);
+  face(s0 + 0.06, s0 + 0.28, top - 0.47, top - 0.35);
+  face(s0 + 0.36, s1 - 0.06, top - 0.47, top - 0.12);
+  g.add(rod(v(s0 + 0.42, top - 0.17, front + 0.035), v(s1 - 0.12, top - 0.17, front + 0.035), 0.009, m.steel));
+  g.add(rod(v(s0 + 0.17, top - 0.2, front + 0.015), v(s0 + 0.17, top - 0.2, front + 0.04), 0.014, m.steel));
+  g.add(box(s0 + 0.46, s1 - 0.16, top - 0.36, top - 0.31, front + 0.015, front + 0.02, m.steel));
+
+  // Rökröret från hällens bakkant in i murstocken.
+  g.add(rod(v(s0 + 0.12, top, back + 0.09), v(s0 + 0.12, top + 0.42, back + 0.09), 0.055, iron));
+  g.add(rod(v(s0 + 0.175, top + 0.42, back + 0.09), v(a - 0.02, top + 0.42, back + 0.09), 0.055, iron));
+  return g;
+}
+
 /* ------------------------------------------------------------------------ */
 
 export function buildFurniture(m: Materials): THREE.Group {
@@ -297,5 +357,6 @@ export function buildFurniture(m: Materials): THREE.Group {
   for (const chair of f.armchairs) group.add(place(buildSeating(0.9, 1, m), chair));
   group.add(buildKitchen(m));
   group.add(place(buildStove(m), f.stove));
+  group.add(buildCookstove(m));
   return group;
 }

@@ -325,6 +325,11 @@ export function createMaterials() {
     }),
     ground: flat(0x7f8a6c, 1),
     // Möbler
+    masonry: standard(canvasTexture(18, (ctx, size, rnd) => {
+      ctx.fillStyle = '#f0ede3';
+      ctx.fillRect(0, 0, size, size);
+      blotches(ctx, size, rnd, 70, ['#fbf9f3', '#dedacd'], 60, 0.25);
+    })),
     pine: standard(canvasTexture(15, rawWood('#dcc296', '#eed9b2', '#b08a58')), 0.8),
     darkWood: standard(canvasTexture(16, rawWood('#4a2e1e', '#6a4630', '#24140b')), 0.6),
     tableTop: standard(canvasTexture(17, rawWood('#d2b48a', '#e6cfa8', '#a37f52')), 0.6),

@@ -125,15 +125,15 @@ export const storageNook = { fromX: 8.53, fromZ: beam.z + beam.width / 2, timber
  * (0 = framsidan mot +z, 90 = mot +x, 180 = mot -z, -90 = mot -x).
  */
 export const furniture = {
-  /** Matbord med sex stolar framför fönstret på köksgaveln. Bordets långsida går längs x. */
-  dining: { x: 1.8, z: 2.0, tableLength: 1.8, tableWidth: 0.9 },
+  /** Matbord med sex stolar, en bit ut från köksgaveln så att kaminen får fritt framför sig. */
+  dining: { x: 2.8, z: 2.1, tableLength: 1.8, tableWidth: 0.9 },
 
   /** Soffa mot soffväggen, soffbord och två fåtöljer vända mot soffan. */
-  sofa: { x: 5.1, z: 0.55, turn: 0, width: 2.05 },
-  coffeeTable: { x: 5.1, z: 1.75 },
+  sofa: { x: 5.5, z: 0.55, turn: 0, width: 2.05 },
+  coffeeTable: { x: 5.5, z: 1.75 },
   armchairs: [
-    { x: 4.2, z: 3.0, turn: 168 },
-    { x: 6.0, z: 3.05, turn: 192 },
+    { x: 4.6, z: 3.0, turn: 168 },
+    { x: 6.4, z: 3.05, turn: 192 },
   ],
 
   /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
@@ -152,6 +152,23 @@ export const furniture = {
     hutchX: [3.85, 5.15],
   },
 
-  /** Braskamin i gjutjärn mot köksgaveln, mellan dörren och köksbänken. Röret går ut genom väggen. */
-  stove: { x: 0.44, z: 4.4, turn: 90 },
+  /** Braskamin i gjutjärn mot köksgaveln, mellan fönstret och den vita dörren. Röret går ut genom väggen. */
+  stove: { x: 0.42, z: 2.78, turn: 90 },
+
+  /**
+   * Husqvarna-vedspisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd och inmurad
+   * i vitputsat murverk med murstock i hörnet. Ryggen står mot soffväggen.
+   */
+  cookstove: {
+    /** Murstockens bredd längs soffväggen och djup ut från den. */
+    chimneyWidth: 0.38,
+    chimneyDepth: 0.5,
+    /** Själva järnspisens bredd, djup och höjd till hällen. */
+    width: 0.76,
+    depth: 0.56,
+    topHeight: 0.86,
+    /** Murad sockel under spisen och murade kinder på sidorna. */
+    plinthHeight: 0.26,
+    cheek: 0.12,
+  },
 };
