@@ -156,11 +156,11 @@ export const furniture = {
   dining: { x: 2.15, z: 1.8, turn: 90, tableLength: 1.9, tableWidth: 0.85 },
 
   /** Soffa mot soffväggen, soffbord och två fåtöljer vända mot soffan. */
-  sofa: { x: 4.35, z: 0.55, turn: 0, width: 2.05 },
-  coffeeTable: { x: 4.35, z: 1.75, turn: 0 },
+  sofa: { x: 4.75, z: 0.55, turn: 0, width: 2.05 },
+  coffeeTable: { x: 4.75, z: 1.75, turn: 0 },
   armchairs: [
-    { x: 3.6, z: 3.0, turn: 168 },
-    { x: 5.1, z: 3.05, turn: 192 },
+    { x: 4.0, z: 3.0, turn: 168 },
+    { x: 5.5, z: 3.05, turn: 192 },
   ],
 
   /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
@@ -237,7 +237,7 @@ export const lighting = {
     { x: 2.3, z: room.width - 0.42, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
   ],
   /** Golvlampa vid soffans ena gavel. */
-  floorLamps: [{ x: 3.05, z: 0.45, watts: 40 }],
+  floorLamps: [{ x: 3.45, z: 0.45, watts: 40 }],
   /** Små lampor i fönsternischerna – en per fönster i soff- och matdelen. */
   windowLamps: ['S1', 'S2', 'A3', 'B1'],
   /** Bordslampa på vitrinskåpets bänkskiva. */
