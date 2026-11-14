@@ -107,8 +107,8 @@ function buildWall(
 /** Fönstret sitter långt ut i muren, så att den djupa nischen syns inifrån. */
 function buildWindow(o: LocalOpening, m: Materials): THREE.Group {
   const g = new THREE.Group();
-  const zIn = -0.24;
-  const zOut = -0.3;
+  const zIn = -D.windowInset;
+  const zOut = zIn - 0.06;
   const f = 0.055;
   const wood = (u0: number, u1: number, y0: number, y1: number) =>
     g.add(box(u0, u1, y0, y1, zOut, zIn, m.whitePaint));
@@ -121,7 +121,7 @@ function buildWindow(o: LocalOpening, m: Materials): THREE.Group {
     const mid = (o.u0 + o.u1) / 2;
     wood(mid - 0.03, mid + 0.03, o.sill + f, o.top - f);
   }
-  g.add(box(o.u0 + f, o.u1 - f, o.sill + f, o.top - f, -0.275, -0.265, m.glass));
+  g.add(box(o.u0 + f, o.u1 - f, o.sill + f, o.top - f, zIn - 0.035, zIn - 0.025, m.glass));
   if (o.lintel) g.add(box(o.u0 - 0.12, o.u1 + 0.12, o.top, o.top + 0.15, -0.02, 0.012, m.lintel));
   return g;
 }
@@ -262,14 +262,22 @@ export function buildStructure(m: Materials): Structure {
   boards.add(box(nook.fromX, L, c.boards, top, 0, nook.fromZ, m.whiteBoards, { scale: 2 }));
   boards.add(box(nook.fromX, L, c.boards, top, nook.fromZ, W, m.darkBoards, { scale: 2 }));
 
+  // Takbjälkarna är skarvade över bärlinan: en uppsättning på var sida, som överlappar ovanpå den.
   const joists = new THREE.Group();
-  for (const x of c.joistXs) {
-    joists.add(
-      box(x - c.joistWidth / 2, x + c.joistWidth / 2, D.joistBottom, c.boards, 0, W, m.whiteWood, {
-        scale: 1.5,
-        along: 'z',
-      }),
-    );
+  const lap = D.beam.width / 2 + 0.12;
+  const sides: [typeof c.sofaJoists, number, number][] = [
+    [c.sofaJoists, 0, D.beam.z + lap],
+    [c.kitchenJoists, D.beam.z - lap, W],
+  ];
+  for (const [side, z0, z1] of sides) {
+    for (const x of side.xs) {
+      joists.add(
+        box(x - side.width / 2, x + side.width / 2, c.boards - side.height, c.boards, z0, z1, m.whiteWood, {
+          scale: 1.5,
+          along: 'z',
+        }),
+      );
+    }
   }
   const logY = c.boards - c.logRadius;
   const logEnd = D.beam.z - D.beam.width / 2;
@@ -278,7 +286,7 @@ export function buildStructure(m: Materials): Structure {
   );
   for (const x of nook.timberXs) {
     joists.add(
-      box(x - 0.03, x + 0.03, D.beamBottom + 0.02, D.joistBottom, nook.fromZ, W, m.newWood, {
+      box(x - 0.03, x + 0.03, D.kitchenJoistBottom - 0.2, D.kitchenJoistBottom, nook.fromZ, W, m.newWood, {
         along: 'z',
       }),
     );
@@ -287,7 +295,7 @@ export function buildStructure(m: Materials): Structure {
   const frame = new THREE.Group();
   const b = D.beam;
   frame.add(
-    box(0, L, D.beamBottom, D.joistBottom, b.z - b.width / 2, b.z + b.width / 2, m.flakedPaint, {
+    box(0, L, D.beamBottom, D.sofaJoistBottom, b.z - b.width / 2, b.z + b.width / 2, m.flakedPaint, {
       scale: 1.2,
     }),
   );
@@ -309,8 +317,8 @@ export function buildStructure(m: Materials): Structure {
   // Kabelröret som armaturerna i köksdelen sitter på.
   lamps.add(
     rod(
-      new THREE.Vector3(0.05, D.joistBottom - 0.012, 6.1),
-      new THREE.Vector3(7.2, D.joistBottom - 0.012, 6.1),
+      new THREE.Vector3(D.lampRow.fromX, D.kitchenJoistBottom - 0.012, D.lampRow.z),
+      new THREE.Vector3(D.lampRow.toX, D.kitchenJoistBottom - 0.012, D.lampRow.z),
       0.012,
       m.fixture,
     ),
@@ -383,7 +391,7 @@ function buildPlasteredRoom(m: Materials, door: { from: number; to: number; top:
     g.add(box(xa, xb, ya, yb, za, zb, m.masonry, { scale: 2.4 }));
 
   // Väggen mot soffhörnan (under en takbjälke) och sidoväggen med dörröppningen.
-  wall(x0, x0 + t, 0, D.joistBottom, 0, z1);
+  wall(x0, x0 + t, 0, D.sofaJoistBottom, 0, z1);
   const sx = x0 + t;
   const top = D.ceiling.boards;
   wall(sx, sx + door.from, 0, top, z1 - t, z1);
@@ -420,7 +428,7 @@ export function buildNewRoom(m: Materials): THREE.Group {
     group.add(buildPlasteredRoom(m, door));
   } else {
     // Reglväggen mot soffhörnan står under en takbjälke.
-    const front = buildStudWall(r.depthZ, D.joistBottom, m);
+    const front = buildStudWall(r.depthZ, D.sofaJoistBottom, m);
     front.position.set(r.frontX, 0, 0);
     front.rotation.y = -Math.PI / 2;
     group.add(front);
@@ -434,7 +442,7 @@ export function buildNewRoom(m: Materials): THREE.Group {
 
     // Avloppsrör i hörnet mot soffväggen.
     const px = r.frontX - 0.09;
-    group.add(rod(new THREE.Vector3(px, 0, 0.1), new THREE.Vector3(px, D.joistBottom, 0.1), 0.055, m.drainPipe));
+    group.add(rod(new THREE.Vector3(px, 0, 0.1), new THREE.Vector3(px, D.sofaJoistBottom, 0.1), 0.055, m.drainPipe));
     group.add(rod(new THREE.Vector3(px, 0.34, 0.12), new THREE.Vector3(px, 0.27, 1.0), 0.04, m.drainPipe));
     group.add(rod(new THREE.Vector3(px, 0.27, 1.0), new THREE.Vector3(px, 0.266, 1.05), 0.048, m.drainPipe));
   }

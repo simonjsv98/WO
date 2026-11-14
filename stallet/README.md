@@ -1,6 +1,6 @@
 # Stallet
 
-En 3D-modell av stallet, 8 × 10 m, tolkad från tio foton: murar, fönster och dörrar, bjälklag, bärlina med stolpar och det nya isolerade rummet i hörnet. Rummet är möblerat med matgrupp, soffgrupp, kök, inmurad vedspis och en braskamin, och har mysbelysning för kvällen. Det nya rummet visas färdigputsat.
+En 3D-modell av stallet, 9,6 × 8,0 m invändigt, uppmätt i en lidarskanning och tolkad från foton: murar, fönster och dörrar, bjälklag, bärlina med stolpar och det nya isolerade rummet i hörnet. Rummet är möblerat med matgrupp, soffgrupp, kök, inmurad vedspis och en braskamin, och har mysbelysning för kvällen. Det nya rummet visas färdigputsat.
 
 Projektet är fristående från träningsappen i resten av repot.
 
@@ -14,7 +14,7 @@ Projektet är fristående från träningsappen i resten av repot.
 
 ## Raytracade bilder
 
-Kvällsljus, renderat med Blender Cycles i 1920 × 1080. Bilderna är från en tidigare möblering: braskaminen, vedspisen och matbordet har flyttats sedan dess, och strecken i golvet är borttagna. Skärmdumparna överst och visaren visar hur det ser ut nu. Nya bilder görs med skriptet under [Rendera själv](#rendera-själv).
+Kvällsljus, renderat med Blender Cycles i 1920 × 1080. Bilderna är från en tidigare version: rummets mått är sedan dess justerade efter lidarskanningen, möblerna har flyttats och strecken i golvet är borttagna. Skärmdumparna överst och visaren visar hur det ser ut nu. Nya bilder görs med skriptet under [Rendera själv](#rendera-själv).
 
 | Soffhörnan | Matplatsen |
 | --- | --- |
@@ -50,32 +50,41 @@ I visaren:
 
 ## Mått
 
-Alla mått ligger i [`src/dimensions.ts`](src/dimensions.ts), i meter. Modellen byggs helt från den filen, så ett uppmätt värde ändras på ett ställe.
+Alla mått ligger i [`src/dimensions.ts`](src/dimensions.ts), i meter. Modellen byggs helt från den filen, så ett värde ändras på ett ställe.
 
-Origo är hörnet mellan köksgaveln och soffväggen. `x` går längs soffväggen (10 m), `z` tvärs över rummet (8 m) och `y` uppåt.
+Origo är hörnet mellan köksgaveln och soffväggen. `x` går längs soffväggen, `z` tvärs över rummet och `y` uppåt.
 
-Yttermåtten 8 × 10 m är givna. **Allt annat är uppskattat ur fotona, ungefär ±0,4 m.** Det som är värt att mäta upp först, eftersom fotona gav olika svar:
+Rummets mått kommer från en lidarskanning (2026-11-14) och är avlästa på ett par centimeter när.
 
-| Mått | Antaget | Var |
+| Mått | Värde | Var |
 | --- | --- | --- |
-| Takhöjd till brädorna | 2,35 m | `ceiling.boards` |
-| Underkant bärlina | 1,92 m | `beamBottom` |
-| Bärlinans avstånd från soffväggen | 4,7 m | `beam.z` |
-| Stolparnas lägen från köksgaveln | 2,6 · 3,6 · 4,6 · 8,3 m | `beam.postXs` |
-| Nya rummets djup längs soffväggen | 2,5 m | `newRoom.frontX` |
-| Nya rummets bredd ut från soffväggen | 2,5 m | `newRoom.depthZ` |
+| Rummets längd och bredd (invändigt) | 9,60 × 8,03 m | `room` |
+| Takhöjd till brädorna | 2,24 m | `ceiling.boards` |
+| Underkant takbjälkar, soffsidan / kökssidan | 2,08 / 2,02 m | `sofaJoistBottom`, `kitchenJoistBottom` |
+| Underkant bärlina | 1,77 m | `beam.bottom` |
+| Bärlinans avstånd från soffväggen | 4,68 m | `beam.z` |
+| Stolparnas lägen från köksgaveln | 2,25 · 3,43 · 4,75 · 7,65 m | `beam.postXs` |
+| Nya rummet, djup längs soffväggen × bredd | 2,67 × 2,45 m | `newRoom` |
 | Fönster och dörrar, läge och storlek | se filen | `sofaWall`, `kitchenGable`, `farGable`, `kitchenWall` |
+
+Det skanningen inte ger, eller ger osäkert:
+
+- **Rummet är inte rätvinkligt i skanningen.** Soffväggen är 9,76 m, långväggen 9,44 m, köksgaveln 7,93 m och bortre gaveln 8,12 m. Modellen är en rektangel med medelvärdena och allt annat är inpassat i den, så enskilda lägen kan skilja någon decimeter längst ut i hörnen. Skillnaden kan vara verklig eller bero på att skanningen dragit sig.
+- **Golvet** lutar ungefär 1 cm per meter och buktar ±5 cm. Modellen har plant golv, och höjderna är mätta från golvet på platsen.
+- **Murens tjocklek** (0,4 m) är antagen – skanningen är gjord inifrån.
+- **Fönstrens djup** i muren (0,1 m) är ungefärligt; glas är svårt för lidar.
+- **Nya rummets insida** är inte skannad.
 
 Förenklingar:
 
-- Takbjälkarna ligger med jämnt avstånd (0,95 m) och går hela vägen över rummet. I verkligheten är de skarvade över bärlinan och ligger lite ojämnt.
-- Murarna är 0,4 m tjocka överallt.
-- Det nya rummet visas färdigt: vitputsade väggar, golvlist och dörrfoder, med avloppsrören inbyggda. Sätt `newRoom.finish` till `'studs'` för att se det som i fotona, med reglar och isolering. Insidan är tom.
+- Takbjälkarna ligger på de skannade lägena, skarvade över bärlinan, men alla är raka och lika grova på var sida.
+- Bärlinan är rak. I skanningen är den skarvad med en liten förskjutning mitt i rummet.
+- Det nya rummet visas färdigt: vitputsade väggar, golvlist och dörrfoder, med avloppsrören inbyggda. Sätt `newRoom.finish` till `'studs'` för att se det som i fotona, med reglar och isolering.
 - Golvet är plant och slätt, utan nivåskillnader och skarvar.
 
 ## Möbler
 
-Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet och vridning i grader – så det går fort att flytta runt saker.
+Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet och vridning i grader – så det går fort att flytta runt saker. Matgruppen, soffgruppen och köket står där de står i skanningen.
 
 - **Matgrupp** – bord med sex pinnstolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på tvären, med långsidan ut från soffväggen.
 - **Soffgrupp** – i U-form: tresitssoffan med ryggen mot nya rummet, en fåtölj med ryggen mot soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.

@@ -90,11 +90,13 @@ export function buildLighting(m: Materials): Lighting {
 
   /* Fönsterlampor står på fönsterbänken, mitt i nischen. */
   const { length: L, width: W } = D.room;
+  // Nischerna är grunda, så lampan står mitt på fönsterbänken, ungefär i liv med väggen.
+  const sillAt = D.windowInset / 2;
   const windowWalls: [D.WallOpening[], (o: D.WallOpening) => [number, number]][] = [
-    [D.sofaWall, (o) => [(o.from + o.to) / 2, -0.12]],
-    [D.kitchenWall, (o) => [(o.from + o.to) / 2, W + 0.12]],
-    [D.kitchenGable, (o) => [-0.12, (o.from + o.to) / 2]],
-    [D.farGable, (o) => [L + 0.12, (o.from + o.to) / 2]],
+    [D.sofaWall, (o) => [(o.from + o.to) / 2, -sillAt]],
+    [D.kitchenWall, (o) => [(o.from + o.to) / 2, W + sillAt]],
+    [D.kitchenGable, (o) => [-sillAt, (o.from + o.to) / 2]],
+    [D.farGable, (o) => [L + sillAt, (o.from + o.to) / 2]],
   ];
   for (const [openings, at] of windowWalls) {
     for (const o of openings) {
@@ -140,11 +142,11 @@ export function buildLighting(m: Materials): Lighting {
     const x = s.fromX + i * s.spacing;
     // Slingan hänger i mjuka bågar mellan fästpunkterna.
     const sag = 0.05 * Math.sin((i / count) * Math.PI * 6) ** 2;
-    const y = D.joistBottom - 0.06 - sag;
+    const y = D.sofaJoistBottom - 0.06 - sag;
     group.add(bulb(x, y - 0.03, beamSide, 0.022, m));
     if (i < count) {
       const next = 0.05 * Math.sin(((i + 1) / count) * Math.PI * 6) ** 2;
-      group.add(rod(v(x, y, beamSide), v(x + s.spacing, D.joistBottom - 0.06 - next, beamSide), 0.003, m.cord));
+      group.add(rod(v(x, y, beamSide), v(x + s.spacing, D.sofaJoistBottom - 0.06 - next, beamSide), 0.003, m.cord));
     }
     sources.push({ kind: 'string', position: [x, y - 0.03, beamSide - 0.03], color: WARM, watts: 2 });
   }

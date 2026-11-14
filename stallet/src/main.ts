@@ -173,7 +173,7 @@ function textSprite(text: string, size: number, dark = false): THREE.Sprite {
 }
 
 const labels = new THREE.Group();
-const meters = (n: number) => `${n.toFixed(1).replace('.', ',')} m`;
+const meters = (n: number) => `${n.toFixed(2).replace('.', ',')} m`;
 
 function dimensionLine(a: THREE.Vector3, b: THREE.Vector3, text: string) {
   const mat = new THREE.LineBasicMaterial({ color: 0x0e0f0d });
@@ -191,10 +191,10 @@ dimensionLine(new THREE.Vector3(-2, 0, 0), new THREE.Vector3(-2, 0, W), meters(W
 
 const zoneLabels: [string, number, number][] = [
   ['Kök', 1.8, 6.4],
-  ['Matplats', 1.6, 2.4],
-  ['Soffhörna', 5.3, 1.6],
+  ['Matplats', D.furniture.dining.x, D.furniture.dining.z],
+  ['Soffhörna', D.furniture.coffeeTable.x, D.furniture.coffeeTable.z],
   ['Nytt rum', (D.newRoom.frontX + L) / 2, D.newRoom.depthZ / 2],
-  ['Förråd', 9.1, 6.4],
+  ['Förråd', L - 0.9, 6.4],
   ['Soffvägg', L / 2, -0.5],
   ['Köksgavel', -0.5, W / 2],
   ['Långvägg med plankdörr', L / 2, W + 0.5],
@@ -222,14 +222,14 @@ interface View {
 const EYE = 1.55;
 
 const views: View[] = [
-  { name: 'Översikt', position: [-5.5, 10.5, 15.5], target: [5, 0.6, 4], fov: 42, exterior: true },
-  { name: 'Plan', position: [5, 24, 4.01], target: [5, 0, 4], fov: 30, exterior: true },
+  { name: 'Översikt', position: [-5.5, 10.5, 15.5], target: [L / 2, 0.6, W / 2], fov: 42, exterior: true },
+  { name: 'Plan', position: [L / 2, 24, W / 2 + 0.01], target: [L / 2, 0, W / 2], fov: 30, exterior: true },
   { name: 'Från köket', position: [2.2, EYE, 6.65], target: [4.7, 1.35, 4.95], fov: 78 },
-  { name: 'Soffhörnan', position: [4.9, EYE, 4.2], target: [4.9, 1.3, 1.2], fov: 78 },
-  { name: 'Köksgaveln', position: [4.4, EYE, 4.3], target: [1.4, 1.3, 4.3], fov: 78 },
-  { name: 'Köket', position: [5.2, EYE, 4.9], target: [2.6, 1.3, 6.9], fov: 78 },
-  { name: 'Nya rummet', position: [4.9, EYE, 3.2], target: [7.8, 1.3, 2.4], fov: 78 },
-  { name: 'Förrådet', position: [7.2, EYE, 4.45], target: [9.5, 1.3, 6.4], fov: 78 },
+  { name: 'Soffhörnan', position: [3.5, EYE, 4.1], target: [5.6, 1.1, 1.4], fov: 78 },
+  { name: 'Köksgaveln', position: [4.0, EYE, 3.9], target: [1.2, 1.3, 4.0], fov: 78 },
+  { name: 'Köket', position: [5.2, EYE, 5.1], target: [2.6, 1.3, 7.0], fov: 78 },
+  { name: 'Nya rummet', position: [4.9, EYE, 3.3], target: [7.4, 1.3, 2.4], fov: 78 },
+  { name: 'Förrådet', position: [6.8, EYE, 4.4], target: [9.0, 1.3, 6.4], fov: 78 },
 ];
 
 function setView(view: View) {
@@ -252,7 +252,7 @@ const state = { evening: true, cutaway: true, joists: true, furniture: true, lab
 const panel = document.querySelector<HTMLDivElement>('#panel')!;
 panel.innerHTML = `
   <details ${window.innerWidth >= 700 ? 'open' : ''}>
-    <summary>Stallet <span>${L} × ${W} m</span></summary>
+    <summary>Stallet <span>${meters(L)} × ${meters(W)}</span></summary>
     <div class="row" data-views></div>
     <div class="row" data-toggles></div>
     <div class="row" data-export-row><button data-export>Ladda ner som GLB</button></div>

@@ -1,48 +1,63 @@
 /**
- * Alla mått för stallet, i meter. Ändra här när något är uppmätt på riktigt –
- * modellen byggs helt utifrån de här värdena.
+ * Alla mått för stallet, i meter. Modellen byggs helt utifrån de här värdena.
  *
  * Koordinater: origo är hörnet mellan köksgaveln och soffväggen.
- *   x går längs soffväggen (10 m), från köksgaveln mot gaveln med plywooddörren.
- *   z går tvärs över rummet (8 m), från soffväggen mot långväggen med plankdörren.
+ *   x går längs soffväggen, från köksgaveln mot gaveln med plywooddörren.
+ *   z går tvärs över rummet, från soffväggen mot långväggen med plankdörren.
  *   y är höjd över golvet.
  *
- * Yttermåtten 8 × 10 m är givna. Allt annat är uppskattat ur foton (ungefär ±0,4 m).
+ * Rummets mått kommer från en lidarskanning (2026-11-14). I skanningen är rummet inte
+ * helt rätvinkligt: soffväggen är 9,76 m, långväggen 9,44 m, köksgaveln 7,93 m och bortre
+ * gaveln 8,12 m. Modellen är en rektangel med medelvärdena, och allt annat är inpassat i
+ * den, så enskilda lägen kan skilja någon decimeter mot verkligheten längst ut i hörnen.
+ * Höjder är mätta från golvet, som lutar och buktar ungefär ±5 cm.
  */
 
 export const room = {
-  length: 10,
-  width: 8,
+  length: 9.6,
+  width: 8.03,
+  /** Murens tjocklek syns inte i skanningen (den är gjord inifrån) och är antagen. */
   wallThickness: 0.4,
   /** Murkrönets höjd – väggarna går lite förbi takbrädorna. */
-  wallTop: 2.5,
+  wallTop: 2.4,
 };
 
+/**
+ * Bjälklaget. Takbjälkarna går tvärs över rummet och är skarvade över bärlinan, så de
+ * ligger på olika ställen och är olika höga på var sida om den. `xs` är mittlägen.
+ */
 export const ceiling = {
   /** Underkant takbrädor. */
-  boards: 2.35,
+  boards: 2.24,
   boardThickness: 0.03,
-  /** Takbjälkarna går tvärs över rummet (i z-led) och vilar på bärlinan. */
-  joistHeight: 0.19,
-  joistWidth: 0.16,
-  joistXs: [0.85, 1.8, 2.75, 3.7, 4.65, 5.6, 6.55, 7.5, 8.45],
+  /** Från soffväggen till bärlinan. Bjälken vid 6,98 ligger över nya rummets vägg. */
+  sofaJoists: { xs: [0.5, 1.28, 2.06, 2.84, 3.66, 5.3, 6.1, 6.98, 8.1], height: 0.16, width: 0.15 },
+  /** Från bärlinan till långväggen. */
+  kitchenJoists: {
+    xs: [0.66, 1.42, 2.22, 3.0, 3.72, 4.6, 5.46, 6.28, 7.0, 7.58, 8.36, 9.2],
+    height: 0.22,
+    width: 0.17,
+  },
   /** Omålad rundstock närmast gaveln, över plywooddörren. */
-  logX: 9.45,
-  logRadius: 0.1,
+  logX: 9.05,
+  logRadius: 0.09,
 };
 
-export const joistBottom = ceiling.boards - ceiling.joistHeight;
+/** Underkant takbjälkar på soffsidan respektive kökssidan. */
+export const sofaJoistBottom = ceiling.boards - ceiling.sofaJoists.height;
+export const kitchenJoistBottom = ceiling.boards - ceiling.kitchenJoists.height;
 
 /** Bärlinan: längsgående balk som bär upp takbjälkarna, på svarta stolpar. */
 export const beam = {
-  z: 4.7,
-  width: 0.22,
-  height: 0.24,
+  z: 4.68,
+  width: 0.2,
+  /** Underkant bärlina – det är här man slår i huvudet. */
+  bottom: 1.77,
   postSize: 0.17,
-  postXs: [2.6, 3.6, 4.6, 8.3],
+  postXs: [2.25, 3.43, 4.75, 7.65],
 };
 
-export const beamBottom = joistBottom - beam.height;
+export const beamBottom = beam.bottom;
 
 export interface WallOpening {
   id: string;
@@ -58,43 +73,46 @@ export interface WallOpening {
   lintel?: boolean;
 }
 
+/** Hur långt in i muren fönsterkarmarna sitter, mätt från väggens insida. */
+export const windowInset = 0.1;
+
 /** Soffväggen, z = 0. */
 export const sofaWall: WallOpening[] = [
-  { id: 'S1', from: 2.0, to: 3.35, sill: 1.12, top: 1.82, kind: 'window', panes: 2 },
-  { id: 'S2', from: 5.65, to: 6.75, sill: 1.12, top: 1.82, kind: 'window', panes: 2 },
+  { id: 'S1', from: 1.74, to: 2.74, sill: 1.27, top: 1.87, kind: 'window', panes: 2 },
+  { id: 'S2', from: 5.18, to: 6.18, sill: 1.2, top: 1.82, kind: 'window', panes: 2 },
 ];
 
 /** Köksgaveln, x = 0. Lägen i z. */
 export const kitchenGable: WallOpening[] = [
-  { id: 'A3', from: 1.36, to: 2.46, sill: 1.05, top: 1.74, kind: 'window', panes: 2 },
-  { id: 'vit dörr', from: 3.1, to: 3.95, sill: 0, top: 1.7, kind: 'whiteDoor' },
-  { id: 'K2', from: 5.05, to: 5.9, sill: 0.95, top: 1.78, kind: 'window', panes: 1 },
-  { id: 'K1', from: 7.05, to: 7.87, sill: 0.95, top: 1.78, kind: 'window', panes: 1 },
+  { id: 'A3', from: 1.4, to: 2.37, sill: 1.23, top: 1.83, kind: 'window', panes: 2 },
+  { id: 'vit dörr', from: 3.02, to: 4.01, sill: 0, top: 1.88, kind: 'whiteDoor' },
+  { id: 'K2', from: 5.1, to: 5.9, sill: 1.05, top: 1.87, kind: 'window', panes: 1 },
+  { id: 'K1', from: 7.13, to: 7.9, sill: 1.05, top: 1.85, kind: 'window', panes: 1 },
 ];
 
-/** Gaveln med plywooddörren, x = 10. Lägen i z. */
+/** Gaveln med plywooddörren, x = rummets längd. Lägen i z. */
 export const farGable: WallOpening[] = [
-  { id: 'plywooddörr', from: 2.9, to: 4.05, sill: 0, top: 2.0, kind: 'plywoodDoor' },
-  { id: 'B1', from: 5.45, to: 6.45, sill: 1.25, top: 1.85, kind: 'window', panes: 2, lintel: true },
+  { id: 'plywooddörr', from: 2.68, to: 3.98, sill: 0, top: 2.05, kind: 'plywoodDoor' },
+  { id: 'B1', from: 5.64, to: 6.55, sill: 1.25, top: 1.75, kind: 'window', panes: 2, lintel: true },
 ];
 
-/** Långväggen mitt emot soffan, z = 8. Lägen i x. */
+/** Långväggen mitt emot soffan, z = rummets bredd. Lägen i x. */
 export const kitchenWall: WallOpening[] = [
-  { id: 'plankdörr', from: 7.05, to: 8.0, sill: 0.3, top: 2.15, kind: 'plankDoor' },
+  { id: 'plankdörr', from: 6.6, to: 7.45, sill: 0.24, top: 2.0, kind: 'plankDoor' },
 ];
 
-/** Det nya isolerade rummet i hörnet soffvägg / bortre gavel. */
+/** Det nya isolerade rummet i hörnet soffvägg / bortre gavel. Insidan är inte skannad. */
 export const newRoom = {
-  /** Reglväggen mot soffhörnan ligger vid det här x-värdet. */
-  frontX: 7.5,
+  /** Väggen mot soffhörnan ligger vid det här x-värdet (utsidan). */
+  frontX: 6.93,
   /** Rummets bredd ut från soffväggen (yttersida sidovägg). */
-  depthZ: 2.5,
+  depthZ: 2.45,
   wallThickness: 0.095,
   studSpacing: 0.6,
-  /** Dörröppningen i sidoväggen, mätt från reglväggens hörn. */
-  doorFrom: 0.35,
+  /** Dörröppningen i sidoväggen, mätt från väggens hörn. */
+  doorFrom: 0.92,
   doorWidth: 0.87,
-  doorHeight: 2.06,
+  doorHeight: 2.04,
   /**
    * 'plaster' = färdigt: vitputsade väggar med golvlist och dörrfoder, avloppsrören inbyggda.
    * 'studs' = som i fotona: reglar, gul isolering och synliga avloppsrör.
@@ -103,19 +121,26 @@ export const newRoom = {
 };
 
 /** Träramp upp till plankdörren. */
-export const ramp = { width: 1.15, length: 1.9, rise: 0.3 };
+export const ramp = { width: 1.05, length: 1.5, rise: 0.24 };
+
+/** Lysrörsraden i köksdelen sitter längs det här z-värdet, från x = 0,7 till 7,0. */
+export const lampRow = { z: 6.35, fromX: 0.7, toX: 7.0 };
 
 /** Lysrörsarmaturer: mittpunkt, riktning och underkant på det de sitter i. */
 export const lamps: { x: number; z: number; along: 'x' | 'z'; top: number }[] = [
-  { x: 1.7, z: 6.1, along: 'x', top: joistBottom },
-  { x: 4.2, z: 6.1, along: 'x', top: joistBottom },
-  { x: 6.3, z: 6.1, along: 'x', top: joistBottom },
-  { x: 8.45, z: 3.4, along: 'z', top: joistBottom },
-  { x: 9.72, z: 6.3, along: 'z', top: beamBottom + 0.1 },
+  { x: 1.6, z: lampRow.z, along: 'x', top: kitchenJoistBottom },
+  { x: 3.6, z: lampRow.z, along: 'x', top: kitchenJoistBottom },
+  { x: 5.8, z: lampRow.z, along: 'x', top: kitchenJoistBottom },
+  { x: 8.1, z: 3.4, along: 'z', top: sofaJoistBottom },
+  { x: room.length - 0.3, z: 6.3, along: 'z', top: beamBottom + 0.12 },
 ];
 
 /** Förrådshörnan bakom sista stolpen har mörkt, omålat tak och två nyare reglar. */
-export const storageNook = { fromX: 8.53, fromZ: beam.z + beam.width / 2, timberXs: [8.33, 9.83] };
+export const storageNook = {
+  fromX: 7.9,
+  fromZ: beam.z + beam.width / 2,
+  timberXs: [7.72, room.length - 0.18],
+};
 
 /* ------------------------------------------------------------------ möbler */
 
@@ -128,17 +153,17 @@ export const furniture = {
    * Matbord med sex stolar vid köksgaveln, nära hörnet mot soffväggen. Bordet står på
    * tvären, med långsidan ut från soffväggen.
    */
-  dining: { x: 2.3, z: 2.4, turn: 90, tableLength: 1.8, tableWidth: 0.9 },
+  dining: { x: 2.15, z: 1.8, turn: 90, tableLength: 1.9, tableWidth: 0.85 },
 
   /**
    * Soffgruppen i U-form: soffan med ryggen mot nya rummet, en fåtölj med ryggen mot
    * soffväggen mellan fönstren och en mittemot soffan, med soffbordet i mitten.
    */
-  sofa: { x: 6.7, z: 1.6, turn: -90, width: 2.05 },
-  coffeeTable: { x: 5.55, z: 1.65, turn: 90 },
+  sofa: { x: 5.87, z: 1.55, turn: -90, width: 2.05 },
+  coffeeTable: { x: 4.87, z: 1.57, turn: 90 },
   armchairs: [
-    { x: 5.3, z: 0.6, turn: 0 },
-    { x: 4.4, z: 2.05, turn: 75 },
+    { x: 4.1, z: 0.95, turn: 10 },
+    { x: 4.05, z: 2.4, turn: 110 },
   ],
 
   /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
@@ -146,28 +171,27 @@ export const furniture = {
     counterDepth: 0.6,
     counterHeight: 0.9,
     /** Bänken längs långväggen går från hörnet ut till det här x-värdet. */
-    longRunToX: 3.0,
+    longRunToX: 3.2,
     /** Bänken längs köksgaveln går från hörnet ner till det här z-värdet. */
-    gableRunToZ: 4.85,
-    ovenX: [1.4, 2.0],
-    microwaveX: [2.25, 2.72],
+    gableRunToZ: 4.78,
+    ovenX: [1.5, 2.1],
+    microwaveX: [2.4, 2.87],
     /** Diskhon sitter under fönstret K2. */
-    sinkZ: [5.1, 5.85],
-    fridgeX: [3.1, 3.65],
-    hutchX: [3.85, 5.15],
+    sinkZ: [5.12, 5.87],
+    fridgeX: [3.35, 3.9],
+    hutchX: [4.15, 5.4],
   },
 
   /**
-   * Braskamin i gjutjärn framför tredje stolpen i stolpraden (räknat från köksgaveln), med
-   * ryggen nästan intill stolpen (ungefär 5 cm luft) och luckan rakt mot soffväggen och
-   * soffgruppen. Den står 15 cm vid sidan av stolpens mitt, så att rökröret går fritt från
-   * takbjälken ovanför. Röret går rakt upp genom taket, tätt intill bärlinan
-   * (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   * Braskamin i gjutjärn framför tredje stolpen i stolpraden (räknat från köksgaveln), där
+   * elkaminen står i skanningen. Ryggen står nästan intill stolpen (ungefär 5 cm luft) och
+   * luckan rakt mot soffväggen och soffgruppen. Röret går rakt upp genom taket, tätt
+   * intill bärlinan (`flue: 'wall'` drar det i stället bakåt genom en vägg).
    *
    * Byt stolpe genom att ändra index i `beam.postXs[2]` (0 är stolpen närmast köksgaveln).
    */
   stove: {
-    x: beam.postXs[2] - 0.15,
+    x: beam.postXs[2],
     z: beam.z - beam.postSize / 2 - 0.05 - 0.22,
     turn: 180,
     flue: 'ceiling' as 'ceiling' | 'wall',
@@ -213,21 +237,21 @@ export const lighting = {
   /** Taklampor i sladd: linneskärm över matbordet, emaljskärmar över köksbänken. */
   pendants: [
     { x: furniture.dining.x, z: furniture.dining.z, bottom: 1.5, shade: 'linen' as const, watts: 60 },
-    { x: 0.42, z: 6.45, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
-    { x: 1.0, z: 7.58, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
-    { x: 2.2, z: 7.58, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
+    { x: 0.42, z: 6.5, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
+    { x: 1.0, z: room.width - 0.42, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
+    { x: 2.3, z: room.width - 0.42, bottom: 1.72, shade: 'enamel' as const, watts: 40 },
   ],
-  /** Golvlampa bredvid fåtöljen vid soffväggen. */
-  floorLamps: [{ x: 4.55, z: 0.45, watts: 40 }],
+  /** Golvlampa vid soffväggen, mellan fåtöljen och soffan. */
+  floorLamps: [{ x: 4.95, z: 0.4, watts: 40 }],
   /** Små lampor i fönsternischerna – en per fönster i soff- och matdelen. */
   windowLamps: ['S1', 'S2', 'A3', 'B1'],
   /** Bordslampa på vitrinskåpets bänkskiva. */
-  tableLamps: [{ x: 4.5, y: 0.935, z: room.width - 0.3, watts: 25 }],
+  tableLamps: [{ x: 4.78, y: 0.935, z: room.width - 0.3, watts: 25 }],
   /** Vägglampor: vid vita dörren, vid plywooddörren och i förrådshörnan. */
   sconces: [
     { wall: 'kitchenGable' as const, at: 4.35, y: 1.6, watts: 25 },
-    { wall: 'farGable' as const, at: 4.45, y: 1.6, watts: 25 },
-    { wall: 'kitchenWall' as const, at: 8.9, y: 1.6, watts: 25 },
+    { wall: 'farGable' as const, at: 4.3, y: 1.6, watts: 25 },
+    { wall: 'kitchenWall' as const, at: 8.5, y: 1.6, watts: 25 },
   ],
   /** Levande ljus: tre på matbordet och två på soffbordet. */
   candles: [
