@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import * as D from './dimensions';
 import { buildNewRoom, buildShell, buildStructure } from './build';
+import { buildFurniture } from './furniture';
 import { createMaterials } from './textures';
 import './style.css';
 
@@ -30,6 +31,7 @@ const materials = createMaterials();
 const shell = buildShell(materials);
 const structure = buildStructure(materials);
 const newRoom = buildNewRoom(materials);
+const furniture = buildFurniture(materials);
 
 /** Allt som hör till själva byggnaden – det är den här gruppen som exporteras. */
 const model = new THREE.Group();
@@ -45,6 +47,7 @@ model.add(
   structure.frame,
   structure.lamps,
   newRoom,
+  furniture,
 );
 scene.add(model);
 
@@ -144,7 +147,7 @@ const EYE = 1.55;
 
 const views: View[] = [
   { name: 'Översikt', position: [-5.5, 10.5, 15.5], target: [5, 0.6, 4], fov: 42, exterior: true },
-  { name: 'Plan', position: [5, 27, 4.01], target: [5, 0, 4], fov: 30, exterior: true },
+  { name: 'Plan', position: [5, 24, 4.01], target: [5, 0, 4], fov: 30, exterior: true },
   { name: 'Från köket', position: [2.2, EYE, 6.65], target: [4.7, 1.35, 4.95], fov: 78 },
   { name: 'Soffhörnan', position: [4.9, EYE, 4.2], target: [4.9, 1.3, 1.2], fov: 78 },
   { name: 'Köksgaveln', position: [4.4, EYE, 4.3], target: [1.4, 1.3, 4.3], fov: 78 },
@@ -168,7 +171,7 @@ function setView(view: View) {
 
 /* ------------------------------------------------------------------- panel */
 
-const state = { cutaway: true, joists: true, labels: true };
+const state = { cutaway: true, joists: true, furniture: true, labels: true };
 
 const panel = document.querySelector<HTMLDivElement>('#panel')!;
 panel.innerHTML = `
@@ -192,6 +195,7 @@ const toggleRow = panel.querySelector('[data-toggles]')!;
 const toggles: [keyof typeof state, string][] = [
   ['cutaway', 'Öppna upp utifrån'],
   ['joists', 'Takbjälkar'],
+  ['furniture', 'Möbler'],
   ['labels', 'Etiketter'],
 ];
 for (const [key, text] of toggles) {
@@ -214,6 +218,7 @@ if (window.self !== window.top) panel.querySelector('[data-export-row]')!.remove
 panel.querySelector('[data-export]')?.addEventListener('click', () => {
   const visibility = model.children.map((child) => child.visible);
   model.children.forEach((child) => (child.visible = true));
+  furniture.visible = state.furniture;
   new GLTFExporter().parse(
     model,
     (result) => {
@@ -264,6 +269,7 @@ function updateCutaway() {
   const above = p.y > D.ceiling.boards;
   structure.boards.visible = !(open && above);
   structure.joists.visible = state.joists;
+  furniture.visible = state.furniture;
   structure.lamps.visible = state.joists || !above;
   // Etiketterna är till för vyerna utifrån; inne i rummet skulle de bara sväva i vägen.
   const inside = p.x > 0 && p.x < L && p.z > 0 && p.z < W && !above;

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as D from './dimensions';
 import type { Materials } from './textures';
 
-type Axis = 'x' | 'y' | 'z';
+export type Axis = 'x' | 'y' | 'z';
 
 /**
  * Lägger ut texturen efter verkliga mått i stället för per sida, så att mönstret
@@ -35,7 +35,7 @@ interface BoxOptions {
 }
 
 /** Låda mellan två hörn, i den omgivande gruppens koordinater. */
-function box(
+export function box(
   x0: number,
   x1: number,
   y0: number,
@@ -52,7 +52,7 @@ function box(
 }
 
 /** Rör eller rundstock mellan två punkter. */
-function rod(from: THREE.Vector3, to: THREE.Vector3, radius: number, material: THREE.Material) {
+export function rod(from: THREE.Vector3, to: THREE.Vector3, radius: number, material: THREE.Material) {
   const length = from.distanceTo(to);
   const geo = new THREE.CylinderGeometry(radius, radius, length, 16);
   const mesh = new THREE.Mesh(geo, material);

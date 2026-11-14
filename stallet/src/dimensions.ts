@@ -117,3 +117,41 @@ export const lamps: { x: number; z: number; along: 'x' | 'z'; top: number }[] = 
 
 /** Förrådshörnan bakom sista stolpen har mörkt, omålat tak och två nyare reglar. */
 export const storageNook = { fromX: 8.53, fromZ: beam.z + beam.width / 2, timberXs: [8.33, 9.83] };
+
+/* ------------------------------------------------------------------ möbler */
+
+/**
+ * Möblernas lägen. `x`/`z` är mittpunkt på golvet och `turn` är vridning i grader
+ * (0 = framsidan mot +z, 90 = mot +x, 180 = mot -z, -90 = mot -x).
+ */
+export const furniture = {
+  /** Matbord med sex stolar framför fönstret på köksgaveln. Bordets långsida går längs x. */
+  dining: { x: 1.8, z: 2.0, tableLength: 1.8, tableWidth: 0.9 },
+
+  /** Soffa mot soffväggen, soffbord och två fåtöljer vända mot soffan. */
+  sofa: { x: 5.1, z: 0.55, turn: 0, width: 2.05 },
+  coffeeTable: { x: 5.1, z: 1.75 },
+  armchairs: [
+    { x: 4.2, z: 3.0, turn: 168 },
+    { x: 6.0, z: 3.05, turn: 192 },
+  ],
+
+  /** Köket: öppen bänk i vinkel i hörnet köksgavel / långvägg, sedan kyl och blått vitrinskåp. */
+  kitchen: {
+    counterDepth: 0.6,
+    counterHeight: 0.9,
+    /** Bänken längs långväggen går från hörnet ut till det här x-värdet. */
+    longRunToX: 3.0,
+    /** Bänken längs köksgaveln går från hörnet ner till det här z-värdet. */
+    gableRunToZ: 4.85,
+    ovenX: [1.4, 2.0],
+    microwaveX: [2.25, 2.72],
+    /** Diskhon sitter under fönstret K2. */
+    sinkZ: [5.1, 5.85],
+    fridgeX: [3.1, 3.65],
+    hutchX: [3.85, 5.15],
+  },
+
+  /** Braskamin i gjutjärn mot köksgaveln, mellan dörren och köksbänken. Röret går ut genom väggen. */
+  stove: { x: 0.44, z: 4.4, turn: 90 },
+};

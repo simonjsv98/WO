@@ -1,6 +1,6 @@
 # Stallet
 
-En 3D-modell av stallet, 8 × 10 m, tolkad från tio foton. Möblerna är inte med – bara själva rummet: murar, fönster och dörrar, bjälklag, bärlina med stolpar och det nya isolerade rummet i hörnet.
+En 3D-modell av stallet, 8 × 10 m, tolkad från tio foton: murar, fönster och dörrar, bjälklag, bärlina med stolpar och det nya isolerade rummet i hörnet. Rummet är möblerat med matgrupp, soffgrupp, kök och en braskamin, och möblerna går att slå av.
 
 Projektet är fristående från träningsappen i resten av repot.
 
@@ -26,6 +26,7 @@ Bygget blir en enda HTML-fil som går att öppna direkt i webbläsaren eller ski
 I visaren:
 
 - **Vyer** – översikt, plan och sex lägen inne i rummet, valda så att de motsvarar fotona.
+- **Möbler** och **Takbjälkar** går att slå av och på.
 - **Öppna upp utifrån** – väggar och takbrädor som står mellan kameran och rummet göms, så att man kan titta in från alla håll.
 - **Ladda ner som GLB** – exporterar modellen för Blender, SketchUp och liknande.
 - Dra för att snurra, scrolla eller nyp för att zooma, WASD för att gå runt.
@@ -55,9 +56,19 @@ Förenklingar:
 - Insidan av det nya rummet är tom.
 - Golvet är plant, med bara de två skarvarna längs stolpraden markerade.
 
+## Möbler
+
+Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet och vridning i grader – så det går fort att flytta runt saker.
+
+- **Matgrupp** – bord med sex pinnstolar framför fönstret på köksgaveln.
+- **Soffgrupp** – tresitssoffa mot soffväggen, soffbord och två fåtöljer.
+- **Kök** – öppen furubänk i vinkel med ugn, kokplatta, mikro och diskho, redskapslist på väggen, kyl/frys och det blå vitrinskåpet.
+- **Braskamin** – gjutjärnskamin mot köksgaveln, mellan den vita dörren och köksbänken, med eldstadsplan och rökrör ut genom väggen. Den är ny och finns inte i fotona. I modellen står den ungefär 15 cm från bänken och dörrkarmen, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
+
 ## Struktur
 
 - `src/dimensions.ts` – alla mått.
 - `src/build.ts` – geometrin: murar med öppningar, bjälklag, bärlina, stolpar, nya rummet.
+- `src/furniture.ts` – möblerna.
 - `src/textures.ts` – ytor och material, ritade i kod (inga bildfiler).
 - `src/main.ts` – scen, ljus, vyer, panel och export.

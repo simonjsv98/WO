@@ -324,6 +324,19 @@ export function createMaterials() {
       roughness: 0.2,
     }),
     ground: flat(0x7f8a6c, 1),
+    // Möbler
+    pine: standard(canvasTexture(15, rawWood('#dcc296', '#eed9b2', '#b08a58')), 0.8),
+    darkWood: standard(canvasTexture(16, rawWood('#4a2e1e', '#6a4630', '#24140b')), 0.6),
+    tableTop: standard(canvasTexture(17, rawWood('#d2b48a', '#e6cfa8', '#a37f52')), 0.6),
+    leather: flat(0xd3c7ab, 0.55),
+    bluePaint: flat(0x5a6d8c, 0.6),
+    cabinetInside: flat(0xd9dcd8, 0.8),
+    appliance: flat(0xf4f4f1, 0.35),
+    ovenGlass: flat(0x0c0c0d, 0.15, 0.3),
+    enamelBlue: flat(0x3f7aa6, 0.4),
+    castIron: flat(0x1a1a1c, 0.5, 0.45),
+    hearth: flat(0x2b2c2e, 0.4, 0.5),
+    ember: new THREE.MeshStandardMaterial({ color: 0x1a0800, emissive: 0xe0480a, emissiveIntensity: 1.1 }),
   };
 }
 
