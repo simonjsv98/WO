@@ -164,11 +164,18 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn vid stolpraden, mitt mellan andra och tredje stolpen. Den står
-   * rakt, med luckan mot soffväggen och soffgruppen. Rökröret går rakt upp genom taket,
-   * strax intill bärlinan (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   * Braskamin i gjutjärn framför andra stolpen i stolpraden, med ryggen nästan intill
+   * stolpen (ungefär 5 cm luft) och luckan rakt mot soffväggen och soffgruppen. Den står
+   * 10 cm vid sidan av stolpens mitt, så att rökröret går fritt från takbjälken rakt
+   * ovanför. Röret går rakt upp genom taket, tätt intill bärlinan (`flue: 'wall'` drar
+   * det i stället bakåt genom en vägg).
    */
-  stove: { x: 4.1, z: 4.15, turn: 180, flue: 'ceiling' as 'ceiling' | 'wall' },
+  stove: {
+    x: beam.postXs[1] - 0.1,
+    z: beam.z - beam.postSize / 2 - 0.05 - 0.22,
+    turn: 180,
+    flue: 'ceiling' as 'ceiling' | 'wall',
+  },
 
   /**
    * Husqvarna-vedspisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd och inmurad
