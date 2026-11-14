@@ -158,14 +158,16 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn framför andra stolpen i stolpraden, med ryggen nästan intill
-   * stolpen (ungefär 5 cm luft) och luckan rakt mot soffväggen och soffgruppen. Den står
-   * 10 cm vid sidan av stolpens mitt, så att rökröret går fritt från takbjälken rakt
-   * ovanför. Röret går rakt upp genom taket, tätt intill bärlinan (`flue: 'wall'` drar
-   * det i stället bakåt genom en vägg).
+   * Braskamin i gjutjärn framför tredje stolpen i stolpraden (räknat från köksgaveln), med
+   * ryggen nästan intill stolpen (ungefär 5 cm luft) och luckan rakt mot soffväggen och
+   * soffgruppen. Den står 15 cm vid sidan av stolpens mitt, så att rökröret går fritt från
+   * takbjälken ovanför. Röret går rakt upp genom taket, tätt intill bärlinan
+   * (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   *
+   * Byt stolpe genom att ändra index i `beam.postXs[2]` (0 är stolpen närmast köksgaveln).
    */
   stove: {
-    x: beam.postXs[1] - 0.1,
+    x: beam.postXs[2] - 0.15,
     z: beam.z - beam.postSize / 2 - 0.05 - 0.22,
     turn: 180,
     flue: 'ceiling' as 'ceiling' | 'wall',
