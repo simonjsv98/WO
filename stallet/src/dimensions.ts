@@ -153,11 +153,16 @@ export const furniture = {
   },
 
   /**
-   * Braskamin i gjutjärn vid nya rummets ytterhörn, snett utåt mot rummet. `cornerGap` är
-   * avståndet från hörnet till kaminens mitt. Rökröret går rakt upp genom taket
-   * (`flue: 'wall'` drar det i stället bakåt genom en vägg).
+   * Braskamin i gjutjärn mitt på nya rummets vägg mot soffhörnan, vänd ut mot rummet.
+   * `wallGap` är luften mellan kaminens rygg och regelväggen. Rökröret går rakt upp genom
+   * taket (`flue: 'wall'` drar det i stället bakåt genom en vägg).
    */
-  stove: { cornerGap: 0.64, turn: -45, flue: 'ceiling' as 'ceiling' | 'wall' },
+  stove: {
+    z: newRoom.depthZ / 2,
+    wallGap: 0.3,
+    turn: -90,
+    flue: 'ceiling' as 'ceiling' | 'wall',
+  },
 
   /**
    * Husqvarna-vedspisen i hörnet köksgavel / soffvägg, upplyft till arbetshöjd och inmurad
