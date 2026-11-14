@@ -176,7 +176,7 @@ panel.innerHTML = `
     <summary>Stallet <span>${L} × ${W} m</span></summary>
     <div class="row" data-views></div>
     <div class="row" data-toggles></div>
-    <div class="row"><button data-export>Ladda ner som GLB</button></div>
+    <div class="row" data-export-row><button data-export>Ladda ner som GLB</button></div>
   </details>
 `;
 
@@ -207,7 +207,11 @@ for (const [key, text] of toggles) {
 document.querySelector<HTMLDivElement>('#hint')!.textContent =
   'Dra för att snurra · nyp eller scrolla för att zooma · två fingrar eller högerklick för att flytta · WASD går runt';
 
-panel.querySelector('[data-export]')!.addEventListener('click', () => {
+// Inbäddad i en annan sida (t.ex. en delad länk) får sidan inte starta nedladdningar,
+// så där visas ingen knapp som inte skulle göra något.
+if (window.self !== window.top) panel.querySelector('[data-export-row]')!.remove();
+
+panel.querySelector('[data-export]')?.addEventListener('click', () => {
   const visibility = model.children.map((child) => child.visible);
   model.children.forEach((child) => (child.visible = true));
   new GLTFExporter().parse(
