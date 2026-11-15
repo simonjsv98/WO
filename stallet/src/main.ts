@@ -284,7 +284,9 @@ function dimensionLine(a: THREE.Vector3, b: THREE.Vector3, text: string) {
   labels.add(sprite);
 }
 
-dimensionLine(new THREE.Vector3(0, 0, -2), new THREE.Vector3(L, 0, -2), meters(L));
+// Måttlinjerna ligger på de sidor som vetter mot kameran i översikten, eftersom de ritas
+// ovanpå bilden och annars skulle synas tvärs över rummet.
+dimensionLine(new THREE.Vector3(0, 0, W + 2), new THREE.Vector3(L, 0, W + 2), meters(L));
 dimensionLine(new THREE.Vector3(-2, 0, 0), new THREE.Vector3(-2, 0, W), meters(W));
 
 const zoneLabels: [string, number, number][] = [
@@ -295,7 +297,7 @@ const zoneLabels: [string, number, number][] = [
   ['Förråd', L - 0.9, 6.4],
   ['Soffvägg', L / 2, -0.5],
   ['Köksgavel', -0.5, W / 2],
-  ['Långvägg med plankdörr', L / 2, W + 0.5],
+  ['Långvägg med plankdörr', L / 2 + 1.5, W + 0.7],
   ['Gavel med plywooddörr', L + 0.5, W / 2],
 ];
 for (const [text, x, z] of zoneLabels) {
