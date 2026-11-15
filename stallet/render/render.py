@@ -29,12 +29,10 @@ args = parser.parse_args()
 # Vyerna: kameraläge och siktpunkt i modellens koordinater (x längs soffväggen, y upp,
 # z tvärs över rummet), vertikal bildvinkel i grader och delar som göms i just den vyn.
 VIEWS = {
-    "soffhornan": dict(position=(3.3, 1.5, 4.1), target=(5.5, 0.8, 1.3), fov=60),
-    "matplatsen": dict(position=(3.9, 1.5, 3.6), target=(1.4, 0.9, 1.4), fov=58),
-    "vedspisen": dict(position=(1.75, 1.35, 1.7), target=(0.55, 0.8, 0.55), fov=60),
-    "kaminen": dict(position=(6.1, 1.35, 2.3), target=(4.4, 0.8, 4.6), fov=58),
-    "koket": dict(position=(4.1, 1.5, 4.9), target=(0.9, 1.0, 7.2), fov=58),
-    "langs-rummet": dict(position=(0.55, 1.55, 3.75), target=(6.5, 1.05, 2.4), fov=62),
+    "soffhornan": dict(position=(2.9, 1.5, 4.2), target=(5.6, 0.85, 1.3), fov=60),
+    "matplatsen": dict(position=(4.2, 1.5, 3.6), target=(1.2, 0.9, 1.4), fov=60),
+    "koket": dict(position=(4.1, 1.5, 5.0), target=(0.9, 1.0, 7.2), fov=58),
+    "langs-rummet": dict(position=(1.2, 1.55, 3.2), target=(6.5, 0.9, 2.2), fov=64),
     "oversikt": dict(
         position=(-4.6, 9.4, 13.6),
         target=(4.8, 0.4, 4.0),

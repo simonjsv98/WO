@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import * as D from './dimensions';
 import { buildNewRoom, buildShell, buildStructure } from './build';
 import { buildFurniture } from './furniture';
@@ -13,11 +19,20 @@ const { length: L, width: W } = D.room;
 const canvas = document.querySelector<HTMLCanvasElement>('#scene')!;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.toneMapping = THREE.NeutralToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+// Skuggorna räknas bara om när något i scenen ändras – rummet står ju still.
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xcfd6d4);
+// Mjukt omgivningsljus och svaga speglingar i blanka ytor.
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+/** Etiketter och måttlinjer ritas ovanpå den färdiga bilden, utanför efterbehandlingen. */
+const overlay = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
 const controls = new OrbitControls(camera, canvas);
@@ -73,12 +88,60 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.set(L / 2, -0.16, W / 2);
 scene.add(ground);
 
+// Några träd och buskar runt huset, så att det finns något att se genom fönstren.
+const foliage = new THREE.MeshStandardMaterial({ color: 0x3f5a34, roughness: 1 });
+const trunk = new THREE.MeshStandardMaterial({ color: 0x3b2f26, roughness: 1 });
+{
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 26; i++) {
+    const angle = (i / 26) * Math.PI * 2 + rnd() * 0.2;
+    const distance = 9 + rnd() * 9;
+    const x = L / 2 + Math.cos(angle) * (distance + L / 2 - 3);
+    const z = W / 2 + Math.sin(angle) * (distance + W / 2 - 3);
+    const height = 3 + rnd() * 5;
+    const tree = new THREE.Group();
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, height * 0.45, 8), trunk);
+    stem.position.y = height * 0.22;
+    tree.add(stem);
+    for (let k = 0; k < 3; k++) {
+      const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(height * (0.22 + rnd() * 0.1), 1), foliage);
+      crown.position.set((rnd() - 0.5) * height * 0.2, height * (0.5 + k * 0.17), (rnd() - 0.5) * height * 0.2);
+      crown.scale.y = 1.2;
+      tree.add(crown);
+    }
+    tree.position.set(x, -0.16, z);
+    scene.add(tree);
+  }
+}
+
 /* -------------------------------------------------------------------- ljus */
 
-const hemisphere = new THREE.HemisphereLight(0xffffff, 0xd9d3c6, 1.35);
-const sun = new THREE.DirectionalLight(0xfff4e0, 0.9);
-sun.position.set(-6, 14, -5);
-scene.add(hemisphere, sun);
+const hemisphere = new THREE.HemisphereLight(0xffffff, 0xd9d3c6, 1.0);
+// Solen står lågt och lyser in genom soffväggens fönster, så att det blir solfläckar på golvet.
+const sun = new THREE.DirectionalLight(0xfff1dc, 3.2);
+sun.position.set(L / 2 + 2.5, 6, -9);
+sun.target.position.set(L / 2, 0, W / 2);
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -8;
+sun.shadow.camera.right = 8;
+sun.shadow.camera.top = 8;
+sun.shadow.camera.bottom = -8;
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 40;
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+sun.shadow.radius = 2.5;
+scene.add(hemisphere, sun, sun.target);
+
+// Allt i modellen både kastar och tar emot skugga, utom glas och det som själv lyser.
+const noShadow = new Set<THREE.Material>([materials.glass, materials.bulb, materials.flame, materials.tube, materials.ember]);
+model.traverse((object) => {
+  const mesh = object as THREE.Mesh;
+  if (!mesh.isMesh) return;
+  mesh.receiveShadow = true;
+  mesh.castShadow = !noShadow.has(mesh.material as THREE.Material);
+});
 
 // Dagsljus: lysrören. Kvällsljus: mysbelysningen.
 const fluorescents = D.lamps.map((lamp) => {
@@ -120,27 +183,62 @@ function warmLights(): THREE.PointLight[] {
 const cozy = warmLights();
 scene.add(...fluorescents, ...cozy);
 
+// Några av lamporna kastar skugga: taklampan över matbordet, en kökslampa, golvlampan och
+// braskaminen. Fler än så orkar inte grafikkortet med.
+const shadowCasters = [0, 2, 4, 13].map((i) => cozy[i]);
+for (const light of shadowCasters) {
+  light.shadow.mapSize.set(512, 512);
+  light.shadow.camera.near = 0.06;
+  light.shadow.camera.far = 12;
+  light.shadow.bias = -0.004;
+  light.shadow.normalBias = 0.03;
+  light.shadow.radius = 4;
+}
+
+/** Himmel som en mjuk toning från horisonten och uppåt. */
+function sky(top: string, horizon: string): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 4;
+  c.height = 256;
+  const ctx = c.getContext('2d')!;
+  const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+  gradient.addColorStop(0, top);
+  gradient.addColorStop(0.62, horizon);
+  gradient.addColorStop(1, horizon);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 4, 256);
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+const skies = { day: sky('#8fb0d2', '#e4ebee'), evening: sky('#070b18', '#3b3a55') };
+
 /** Växlar mellan dagsljus med lysrör och kvällsljus med mysbelysning. */
 function applyMood(evening: boolean) {
-  (scene.background as THREE.Color).set(evening ? 0x121a2a : 0xcfd6d4);
+  scene.background = evening ? skies.evening : skies.day;
   materials.ground.color.set(evening ? 0x1c2620 : 0x7f8a6c);
   hemisphere.color.set(evening ? 0x7088b8 : 0xffffff);
   hemisphere.groundColor.set(evening ? 0x3a3631 : 0xd9d3c6);
-  hemisphere.intensity = evening ? 0.42 : 1.35;
-  sun.color.set(evening ? 0x8fa6d8 : 0xfff4e0);
-  sun.intensity = evening ? 0.12 : 0.9;
-  renderer.toneMappingExposure = evening ? 1.25 : 1.05;
+  hemisphere.intensity = evening ? 0.2 : 0.5;
+  scene.environmentIntensity = evening ? 0.1 : 0.35;
+  sun.intensity = evening ? 0 : 11;
+  sun.castShadow = !evening;
+  for (const light of shadowCasters) light.castShadow = evening;
+  renderer.toneMappingExposure = evening ? 1.05 : 0.9;
   document.body.classList.toggle('evening', evening);
 
-  for (const light of fluorescents) light.intensity = evening ? 0 : 3;
+  for (const light of fluorescents) light.intensity = evening ? 0 : 2.2;
   materials.tube.emissiveIntensity = evening ? 0 : 1.6;
-  for (const light of cozy) light.intensity = evening ? light.userData.watts * 0.085 : 0;
+  for (const light of cozy) light.intensity = evening ? light.userData.watts * 0.068 : 0;
   materials.linenShade.emissiveIntensity = evening ? 0.9 : 0.05;
   materials.enamelInside.emissiveIntensity = evening ? 0.6 : 0.03;
   materials.bulb.emissiveIntensity = evening ? 2.2 : 0.1;
   materials.flame.emissiveIntensity = evening ? 2.6 : 0.4;
   materials.ember.emissiveIntensity = evening ? 1.6 : 0.5;
   materials.glass.emissive.set(evening ? 0x24324f : 0xdfeaea);
+  materials.glass.emissiveIntensity = evening ? 0.45 : 0.12;
+  materials.glass.opacity = evening ? 0.4 : 0.2;
+  foliage.color.set(evening ? 0x0c120e : 0x3f5a34);
   materials.glass.color.set(evening ? 0x5a6a88 : 0xeaf2f2);
 }
 
@@ -205,7 +303,7 @@ for (const [text, x, z] of zoneLabels) {
   sprite.position.set(x, 1.1, z);
   labels.add(sprite);
 }
-scene.add(labels);
+overlay.add(labels);
 
 /* -------------------------------------------------------------------- vyer */
 
@@ -247,7 +345,7 @@ function setView(view: View) {
 
 /* ------------------------------------------------------------------- panel */
 
-const state = { evening: true, cutaway: true, joists: true, furniture: true, labels: true };
+const state = { evening: true, quality: true, cutaway: true, joists: true, furniture: true, labels: true };
 
 const panel = document.querySelector<HTMLDivElement>('#panel')!;
 panel.innerHTML = `
@@ -270,6 +368,7 @@ for (const view of views) {
 const toggleRow = panel.querySelector('[data-toggles]')!;
 const toggles: [keyof typeof state, string][] = [
   ['evening', 'Kvällsljus'],
+  ['quality', 'Hög kvalitet'],
   ['cutaway', 'Öppna upp utifrån'],
   ['joists', 'Takbjälkar'],
   ['furniture', 'Möbler'],
@@ -280,6 +379,7 @@ for (const [key, text] of toggles) {
   const input = document.createElement('input');
   input.type = 'checkbox';
   input.checked = state[key];
+  input.dataset.key = key;
   input.addEventListener('change', () => (state[key] = input.checked));
   label.append(input, text);
   toggleRow.append(label);
@@ -363,24 +463,80 @@ function updateCutaway() {
   // Etiketterna är till för vyerna utifrån; inne i rummet skulle de bara sväva i vägen.
   const inside = p.x > 0 && p.x < L && p.z > 0 && p.z < W && !above;
   labels.visible = state.labels && !inside;
+
+  // Skuggorna räknas om när ljuset eller det som syns har ändrats.
+  const signature = [mood, ...model.children.map((child) => child.visible)].join();
+  if (signature !== shadowSignature) {
+    shadowSignature = signature;
+    renderer.shadowMap.needsUpdate = true;
+  }
+}
+let shadowSignature = '';
+
+/* --------------------------------------------------------- efterbehandling */
+
+// Hög kvalitet: skuggning i hörn och skarvar (ambient occlusion) och ett svagt sken runt
+// lamporna. Det kostar en del, så det slås av automatiskt om bilden börjar hacka.
+const composer = new EffectComposer(
+  renderer,
+  new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }),
+);
+composer.addPass(new RenderPass(scene, camera));
+const occlusion = new GTAOPass(scene, camera, 1, 1);
+occlusion.updateGtaoMaterial({ radius: 0.4, distanceExponent: 1.5, thickness: 1.5, scale: 1.2, samples: 12 });
+occlusion.blendIntensity = 0.85;
+composer.addPass(occlusion);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.5, 0.92);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+const smoothness = { frames: 0, slow: 0, adaptive: true, sharp: true };
+function watchSmoothness(dt: number) {
+  if (!smoothness.adaptive || (!state.quality && !smoothness.sharp)) return;
+  smoothness.frames++;
+  if (smoothness.frames < 20) return; // de första bilderna är alltid långsamma
+  smoothness.slow = dt > 0.06 ? smoothness.slow + 1 : Math.max(0, smoothness.slow - 1);
+  if (smoothness.slow <= 25) return;
+  smoothness.slow = 0;
+  if (state.quality) {
+    // Första steget: stäng av efterbehandlingen.
+    state.quality = false;
+    const box = panel.querySelector<HTMLInputElement>('input[data-key="quality"]');
+    if (box) box.checked = false;
+  } else {
+    // Andra steget, om det fortfarande hackar: rita i lägre upplösning.
+    smoothness.sharp = false;
+    renderer.setPixelRatio(1);
+  }
 }
 
 function resize() {
   const { clientWidth: w, clientHeight: h } = canvas;
   if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
     renderer.setSize(w, h, false);
+    composer.setPixelRatio(renderer.getPixelRatio());
+    composer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
 }
 
-const clock = new THREE.Clock();
+const timer = new THREE.Timer();
 function frame() {
   resize();
-  walk(Math.min(clock.getDelta(), 0.1));
+  timer.update();
+  const dt = timer.getDelta();
+  walk(Math.min(dt, 0.1));
   controls.update();
   updateCutaway();
-  renderer.render(scene, camera);
+  watchSmoothness(dt);
+  if (state.quality) composer.render();
+  else renderer.render(scene, camera);
+  // Etiketterna ovanpå, utan att sudda bilden.
+  renderer.autoClear = false;
+  renderer.clearDepth();
+  renderer.render(overlay, camera);
+  renderer.autoClear = true;
   requestAnimationFrame(frame);
 }
 
@@ -393,6 +549,7 @@ Object.assign(window, {
     views,
     setView,
     state,
+    smoothness,
     sources: lighting.sources,
     look(position: [number, number, number], target: [number, number, number], fov: number) {
       setView({ name: '', position, target, fov });

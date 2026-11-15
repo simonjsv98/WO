@@ -378,6 +378,120 @@ function buildCookstove(m: Materials): THREE.Group {
   return g;
 }
 
+/* ------------------------------------------------------------- inredning */
+
+/** Kuddar, pläd och fårskinn. Byggs i möbelns egna koordinater och ställs på samma plats. */
+function buildSofaTextiles(width: number, m: Materials): THREE.Group {
+  const g = new THREE.Group();
+  const edge = width / 2 - 0.32;
+  for (const [x, lean, twist] of [
+    [-edge, -0.42, 0.25],
+    [edge - 0.08, -0.36, -0.2],
+  ]) {
+    const pillow = cushion(0.44, 0.42, 0.15, x, 0.62, -0.1, m.velvet);
+    pillow.rotation.set(lean, twist, 0);
+    g.add(pillow);
+  }
+  // Hopvikt pläd på sitsen.
+  g.add(cushion(0.5, 0.07, 0.36, 0.2, 0.475, 0.12, m.wool));
+  g.add(cushion(0.5, 0.05, 0.3, 0.2, 0.53, 0.12, m.wool));
+  return g;
+}
+
+function buildSheepskin(m: Materials): THREE.Group {
+  const g = new THREE.Group();
+  const seat = cushion(0.56, 0.08, 0.66, 0, 0.47, 0.1, m.sheepskin);
+  const back = cushion(0.52, 0.5, 0.09, 0, 0.72, -0.14, m.sheepskin);
+  back.rotation.x = -0.2;
+  g.add(seat, back);
+  return g;
+}
+
+/** Trasmatta med mitten i (x, z). `alongX` avgör åt vilket håll den ligger. */
+function rug(x: number, z: number, length: number, width: number, alongX: boolean, material: THREE.Material) {
+  const mesh = alongX
+    ? box(x - length / 2, x + length / 2, 0.001, 0.012, z - width / 2, z + width / 2, material)
+    : box(x - width / 2, x + width / 2, 0.001, 0.012, z - length / 2, z + length / 2, material, { along: 'z' });
+  mesh.castShadow = false;
+  return mesh;
+}
+
+/** Vedtrave: kluvna och runda klabbar med ändarna utåt mot rummet. */
+function buildWoodpile(x0: number, x1: number, z0: number, z1: number, rows: number, m: Materials): THREE.Group {
+  const g = new THREE.Group();
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let row = 0, y = 0.06; row < rows; row++, y += 0.105) {
+    for (let z = z0 + 0.06 + (row % 2) * 0.05; z < z1 - 0.04; ) {
+      const r = 0.045 + rnd() * 0.02;
+      const start = x0 + rnd() * 0.04;
+      g.add(rod(v(start, y + (rnd() - 0.5) * 0.01, z), v(x1, y, z), r, rnd() > 0.45 ? m.bark : m.pine));
+      z += r * 2 + 0.008;
+    }
+  }
+  return g;
+}
+
+/** Skål med äpplen. */
+function buildFruitBowl(m: Materials): THREE.Group {
+  const g = new THREE.Group();
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.15, 28, 12, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45), m.ceramic);
+  (bowl.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+  bowl.position.y = 0.15;
+  g.add(bowl);
+  for (const [x, z] of [
+    [-0.045, 0.02],
+    [0.05, 0.03],
+    [0.0, -0.05],
+  ]) {
+    const apple = new THREE.Mesh(new THREE.SphereGeometry(0.038, 14, 10), m.apple);
+    apple.position.set(x, 0.07, z);
+    g.add(apple);
+  }
+  return g;
+}
+
+/** Kastruller, burkar och skärbrädor på köksbänken och hyllorna. */
+function buildKitchenware(m: Materials): THREE.Group {
+  const g = new THREE.Group();
+  const k = D.furniture.kitchen;
+  const W = D.room.width;
+  const top = k.counterHeight;
+  const pot = (x: number, y: number, z: number, r: number, h: number, material: THREE.Material) => {
+    g.add(rod(v(x, y, z), v(x, y + h, z), r, material));
+    g.add(rod(v(x - r - 0.05, y + h * 0.75, z), v(x + r + 0.05, y + h * 0.75, z), 0.008, material));
+  };
+  // Långväggens bänk: på hyllorna och på bänkskivan.
+  pot(0.45, 0.162, W - 0.3, 0.12, 0.14, m.steel);
+  pot(0.85, 0.162, W - 0.32, 0.1, 0.11, m.enamelBlue);
+  pot(0.5, 0.522, W - 0.3, 0.09, 0.1, m.steel);
+  pot(0.95, 0.522, W - 0.3, 0.11, 0.08, m.castIron);
+  pot(1.15, top, W - 0.32, 0.1, 0.13, m.steel);
+  g.add(rod(v(2.95, top, W - 0.3), v(2.95, top + 0.3, W - 0.3), 0.075, m.appliance));
+  // Skärbrädor lutade mot väggen.
+  for (const [x, w, h] of [
+    [0.5, 0.28, 0.4],
+    [0.72, 0.22, 0.32],
+  ]) {
+    const board = box(-w / 2, w / 2, 0, h, -0.012, 0.012, m.pine, { along: 'y' });
+    board.rotation.x = 0.16;
+    board.position.set(x, top, W - 0.06);
+    g.add(board);
+  }
+  // Gavelbänken: burkar bredvid diskhon och skålar på hyllan.
+  for (const [z, r, h] of [
+    [6.3, 0.05, 0.16],
+    [6.45, 0.045, 0.12],
+    [6.58, 0.055, 0.2],
+  ]) {
+    g.add(rod(v(0.14, top, z), v(0.14, top + h, z), r, m.ceramic));
+  }
+  pot(0.3, 0.522, 6.4, 0.11, 0.07, m.ceramic);
+  pot(0.3, 0.522, 6.75, 0.09, 0.09, m.enamelBlue);
+  pot(0.3, 0.162, 6.9, 0.13, 0.12, m.castIron);
+  return g;
+}
+
 /* ------------------------------------------------------------------------ */
 
 export function buildFurniture(m: Materials): THREE.Group {
@@ -386,8 +500,21 @@ export function buildFurniture(m: Materials): THREE.Group {
   group.name = 'Möbler';
   group.add(place(buildDiningGroup(m), f.dining));
   group.add(place(buildSeating(f.sofa.width, 3, m), f.sofa));
+  group.add(place(buildSofaTextiles(f.sofa.width, m), f.sofa));
   group.add(place(buildCoffeeTable(m), f.coffeeTable));
   for (const chair of f.armchairs) group.add(place(buildSeating(0.9, 1, m), chair));
+  group.add(place(buildSheepskin(m), f.armchairs[0]));
+
+  // Trasmattor: en under soffbordet och en löpare framför köksbänken.
+  group.add(rug(f.coffeeTable.x, f.coffeeTable.z + 0.25, 2.3, 1.5, true, m.rugBlue));
+  group.add(rug(f.kitchen.longRunToX / 2 + 0.2, D.room.width - f.kitchen.counterDepth - 0.5, 2.4, 0.7, true, m.rugGreen));
+
+  // Vedtrave mot nya rummets vägg, bredvid kaminen på sidan mot soffväggen.
+  group.add(buildWoodpile(D.newRoom.frontX - 0.36, D.newRoom.frontX - 0.02, 0.25, f.stove.z - 0.75, 5, m));
+
+  // Skål med äpplen på matbordet, bredvid ljusen.
+  group.add(place(buildFruitBowl(m), { x: f.dining.x, z: f.dining.z + 0.5 }).translateY(0.76));
+  group.add(buildKitchenware(m));
   group.add(buildKitchen(m));
   group.add(place(buildStove(m), f.stove));
   group.add(buildCookstove(m));

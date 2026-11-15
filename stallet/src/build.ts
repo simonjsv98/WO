@@ -269,10 +269,15 @@ export function buildStructure(m: Materials): Structure {
     [c.sofaJoists, 0, D.beam.z + lap],
     [c.kitchenJoists, D.beam.z - lap, W],
   ];
+  // Bjälkarna är handbilade: ingen är riktigt lik den andra i grovlek.
+  let wobble = 3;
+  const vary = () => ((wobble = (wobble * 16807) % 2147483647) / 2147483647 - 0.5);
   for (const [side, z0, z1] of sides) {
     for (const x of side.xs) {
+      const width = side.width * (1 + vary() * 0.22);
+      const height = side.height + vary() * 0.03;
       joists.add(
-        box(x - side.width / 2, x + side.width / 2, c.boards - side.height, c.boards, z0, z1, m.whiteWood, {
+        box(x - width / 2, x + width / 2, c.boards - height, c.boards, z0, z1, m.whiteWood, {
           scale: 1.5,
           along: 'z',
         }),

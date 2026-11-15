@@ -14,19 +14,15 @@ Projektet är fristående från träningsappen i resten av repot.
 
 ## Raytracade bilder
 
-Kvällsljus, renderat med Blender Cycles i 1920 × 1080. Bilderna är från en tidigare version: rummets mått är sedan dess justerade efter lidarskanningen, möblerna har flyttats och strecken i golvet är borttagna. Skärmdumparna överst och visaren visar hur det ser ut nu. Nya bilder görs med skriptet under [Rendera själv](#rendera-själv).
+Kvällsljus, renderat med Blender Cycles i 1600 × 900.
 
 | Soffhörnan | Matplatsen |
 | --- | --- |
 | ![Soffhörnan](renders/soffhornan.jpg) | ![Matplatsen](renders/matplatsen.jpg) |
 
-| Kaminen | Köket |
+| Köket | Längs rummet |
 | --- | --- |
-| ![Kaminen](renders/kaminen.jpg) | ![Köket](renders/koket.jpg) |
-
-| Längs rummet | Översikt |
-| --- | --- |
-| ![Längs rummet](renders/langs-rummet.jpg) | ![Översikt](renders/oversikt.jpg) |
+| ![Köket](renders/koket.jpg) | ![Längs rummet](renders/langs-rummet.jpg) |
 
 ## Kom igång
 
@@ -42,7 +38,8 @@ Bygget blir en enda HTML-fil som går att öppna direkt i webbläsaren eller ski
 I visaren:
 
 - **Vyer** – översikt, plan och sex lägen inne i rummet, valda så att de motsvarar fotona.
-- **Kvällsljus** – växlar mellan mysbelysning i skymning och dagsljus med lysrören tända.
+- **Kvällsljus** – växlar mellan mysbelysning i skymning och dagsljus med lysrören tända och sol in genom soffväggens fönster.
+- **Hög kvalitet** – skuggning i hörn och skarvar (ambient occlusion) och ett svagt sken runt lamporna. Slås av automatiskt om bilden börjar hacka.
 - **Möbler** och **Takbjälkar** går att slå av och på.
 - **Öppna upp utifrån** – väggar och takbrädor som står mellan kameran och rummet göms, så att man kan titta in från alla håll.
 - **Ladda ner som GLB** – exporterar modellen för Blender, SketchUp och liknande.
@@ -92,6 +89,17 @@ Lägena står under `furniture` i `src/dimensions.ts` – mittpunkt på golvet o
 - **Vedspis** – Husqvarna-spisen i hörnet köksgavel / soffvägg, 45 grader snett över hörnet och vänd ut mot rummet. Den är upplyft till arbetshöjd (häll på 0,86 m) och inmurad i vitputsat murverk, med murstock innerst i hörnet upp till taket och en murad avställningsyta ut mot väggen på var sida. Murverket når knappt 1,2 m ut längs vardera väggen.
 - **Braskamin** – gjutjärnskamin mot nya rummets vägg mot soffhörnan, 1,8 m ut från soffväggen och vänd ut mot rummet, med eldstadsplan och rökrör rakt upp genom taket. I modellen är det 0,3 m från kaminens rygg till väggen och ungefär 0,3 m från röret till närmaste takbjälke, så avstånden till brännbart material behöver kontrolleras innan den placeras så på riktigt.
 
+## Inredning och ytor
+
+För att bilden ska närma sig ett foto finns också:
+
+- **Skuggor** från solen på dagen, och på kvällen från taklampan över matbordet, en kökslampa, golvlampan och braskaminen.
+- **Ytor med relief**: puts, betonggolv, målat och omålat trä ritas i kod i hög upplösning, med ojämn färg och fåror i skarvar, sprickor och ådring.
+- **Textilier**: kuddar och pläd i soffan, fårskinn i ena fåtöljen, en trasmatta under soffbordet och en löpare framför köksbänken.
+- **Småsaker**: vedtrave vid kaminen, skål med äpplen på matbordet, kastruller, burkar och skärbrädor i köket.
+- **Utomhus**: tonad himmel och träd runt huset, så att det finns något att se genom fönstren.
+- Takbjälkarna är olika grova, som handbilat virke.
+
 ## Belysning
 
 Lamporna står under `lighting` i `src/dimensions.ts`.
@@ -113,7 +121,7 @@ Bilderna ovan görs i Blender med skriptet `render/render.py`:
 3. Installera Blender som Python-modul (`pip install bpy`) och kör:
 
 ```bash
-python render/render.py stallet.glb sources.json renders --width 1920 --samples 100
+python render/render.py stallet.glb sources.json renders --width 1600 --samples 80
 ```
 
 Vyerna, lampstyrkorna och skymningsljuset ställs in överst i skriptet. En bild i 1920 × 1080 tar några minuter på en vanlig processor.
@@ -125,6 +133,7 @@ Murstocken och rökrörens dragning är antaganden – modellen vet inget om var
 - `src/dimensions.ts` – alla mått.
 - `src/build.ts` – geometrin: murar med öppningar, bjälklag, bärlina, stolpar, nya rummet.
 - `src/furniture.ts` – möblerna.
+- `src/furniture.ts` innehåller också textilier och småsaker.
 - `src/lighting.ts` – lamporna och listan med ljuskällor.
 - `src/textures.ts` – ytor och material, ritade i kod (inga bildfiler).
 - `src/main.ts` – scen, ljus, vyer, panel och export.
