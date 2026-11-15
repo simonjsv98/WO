@@ -219,15 +219,15 @@ function applyMood(evening: boolean) {
   materials.ground.color.set(evening ? 0x1c2620 : 0x7f8a6c);
   hemisphere.color.set(evening ? 0x7088b8 : 0xffffff);
   hemisphere.groundColor.set(evening ? 0x3a3631 : 0xd9d3c6);
-  hemisphere.intensity = evening ? 0.2 : 0.5;
-  scene.environmentIntensity = evening ? 0.1 : 0.35;
-  sun.intensity = evening ? 0 : 11;
+  hemisphere.intensity = evening ? 0.2 : 0.36;
+  scene.environmentIntensity = evening ? 0.1 : 0.3;
+  sun.intensity = evening ? 0 : 14;
   sun.castShadow = !evening;
   for (const light of shadowCasters) light.castShadow = evening;
-  renderer.toneMappingExposure = evening ? 1.05 : 0.9;
+  renderer.toneMappingExposure = evening ? 1.05 : 0.95;
   document.body.classList.toggle('evening', evening);
 
-  for (const light of fluorescents) light.intensity = evening ? 0 : 2.2;
+  for (const light of fluorescents) light.intensity = evening ? 0 : 1.5;
   materials.tube.emissiveIntensity = evening ? 0 : 1.6;
   for (const light of cozy) light.intensity = evening ? light.userData.watts * 0.068 : 0;
   materials.linenShade.emissiveIntensity = evening ? 0.9 : 0.05;
