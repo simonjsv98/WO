@@ -92,9 +92,27 @@ def make_window_glass(material):
     tree.links.new(mix.outputs[0], out.inputs["Surface"])
 
 
+def add_relief(material, distance):
+    """Relief från färgbilden: mörka skarvar, sprickor och ådring blir fåror."""
+    node = principled(material)
+    if not node or not node.inputs["Base Color"].is_linked:
+        return
+    source = node.inputs["Base Color"].links[0].from_socket
+    tree = material.node_tree
+    bump = tree.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.6
+    bump.inputs["Distance"].default_value = distance
+    tree.links.new(source, bump.inputs["Height"])
+    tree.links.new(bump.outputs["Normal"], node.inputs["Normal"])
+
+
+# Hur djup reliefen är per yta, i meter.
+RELIEF = {"rugGreen": 0.006, "rugBlue": 0.006, "bark": 0.008, "concrete": 0.003, "flakedPaint": 0.004}
+
 WARM = linear(0xFFC58A)
 for material in bpy.data.materials:
     name = material.name.split(".")[0]
+    add_relief(material, RELIEF.get(name, 0.002))
     if name == "glass":
         make_window_glass(material)
     elif name == "tube":
