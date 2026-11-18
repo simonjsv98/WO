@@ -412,7 +412,7 @@ function sketch() {
     version: 1,
     garden: {
       w: 12, d: 8, sketch: true,
-      gate: { side: "S", at: 10.4, w: 1 }, siteVersion: 2,
+      gate: { side: "S", at: 10.4, w: 1 }, siteVersion: 3,
       site: defaultSite(),
       obstacles: defaultObstacles(),
       beds: [
@@ -453,13 +453,15 @@ function sketch() {
    with the barn, which on the satellite image is turned about 18° from north towards west, and its front (gate and
    border) faces the barn: the back points east-north-east, 72°. */
 function defaultSite() { return { lat: 57.7, lon: 12.0, orient: 72 }; }
-/* The building (a barn) in front of the garden, to the west-south-west (about 10 m to the ridge, on ground 3 m higher),
-   and the bank between them. Its long side runs along the garden's length. Sizes are read off a satellite image and
-   should be checked. Metres in the garden's own coordinates (x to the right on the map, y towards the back). */
+/* The building (a barn) in front of the garden and off to its left (about 10 m to the ridge, on ground 3 m higher),
+   and the bank between them. Measured on Simon's aerial photo, with the barn (19 m long) as the scale: its long side
+   runs along the garden's length, its wall is about 3,5 m in front of the front fence, and the garden starts about
+   16 m along the barn and reaches about 7 m past its far gable. So the barn stands behind the garden's left end, to
+   the north-west, rather than beside it. Metres in the garden's own coordinates (x to the right on the map, y towards the back). */
 function defaultObstacles() {
   return [
-    { id: "o1", type: "building", name: "Byggnaden i väster", x: -6, y: -16.3, w: 19, d: 11, base: 3, eaves: 5, ridge: 10 },
-    { id: "o2", type: "terrace", name: "Slänten", x: -25, y: -45, w: 62, d: 43.7, base: 0, eaves: 3, ridge: 3, ramp: 4, foot: "N" }
+    { id: "o1", type: "building", name: "Byggnaden i väster", x: -16.3, y: -14.1, w: 19, d: 10.5, base: 3, eaves: 5, ridge: 10 },
+    { id: "o2", type: "terrace", name: "Slänten", x: -40, y: -45, w: 62, d: 43.8, base: 0, eaves: 3, ridge: 3, ramp: 2.2, foot: "N" }
   ];
 }
 const ITEM_NAMES = { compost: "Kompost", obelisk: "Obelisk", stool: "Pall", trellis: "Spaljé" };
@@ -480,6 +482,12 @@ if ((D.garden.siteVersion || 1) < 2) {
   if (D.garden.site.orient === -18) D.garden.site.orient = 72;
   if (D.garden.obstacles.map(o => o.id).join() === "o1,o2") D.garden.obstacles = defaultObstacles();
   D.garden.siteVersion = 2;
+}
+// 3: the barn placed from the aerial photo (behind the garden's left end, 3,5 m in front of the fence).
+if (D.garden.siteVersion < 3) {
+  const ids = D.garden.obstacles.map(o => o.id).join(), b = D.garden.obstacles[0];
+  if (ids === "o1,o2" && b && b.x === -6 && b.y === -16.3) D.garden.obstacles = defaultObstacles();
+  D.garden.siteVersion = 3;
 }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} };
 const ui = {
