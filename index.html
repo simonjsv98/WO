@@ -644,6 +644,36 @@ function shaded(px, py, pz, s) {
   }
   return false;
 }
+/* Trees and higher ground around the garden, measured by Lantmäteriet (omgivning.json, loaded when the app starts).
+   A grid of 1 m cells centred on the garden, in the world's directions (row 0 north). SUR.h is the height of the top
+   (ground plus tree) above the garden's ground. */
+let SUR = null;
+fetch("omgivning.json").then(r => r.ok ? r.json() : null).then(j => {
+  if (!j) return;
+  const dec = b => Uint8Array.from(atob(b), ch => ch.charCodeAt(0));
+  const ground = dec(j.ground), trees = dec(j.trees), h = new Float32Array(j.n * j.n);
+  let max = 0;
+  for (let i = 0; i < h.length; i++) { h[i] = (ground[i] + trees[i]) * j.unit; if (h[i] > max) max = h[i]; }
+  SUR = { n: j.n, unit: j.unit, ground, trees, h, max, source: j.source, count: trees.reduce((a, v) => a + (v > 0), 0) };
+  sunCache = new Map();
+  sceneSurround();
+  if (S.view === "land") { if (S.mode === "plan") drawPlan(); refreshSide(); }
+}).catch(() => {});
+// Does a ray from a point in the garden towards the sun hit a tree or higher ground in the grid?
+function shadedBySurround(px, py, pz, s) {
+  if (!SUR) return false;
+  const g = D.garden, o = g.site.orient * RAD, co = Math.cos(o), so = Math.sin(o);
+  const dx = px - g.w / 2, dy = py - g.d / 2, e0 = dx * co + dy * so, n0 = -dx * so + dy * co;
+  const se = Math.sin(s.az), sn = Math.cos(s.az), tz = Math.tan(s.alt), N = SUR.n, R = N / 2;
+  for (let t = 1; ; t += .7) {
+    const z = pz + t * tz;
+    if (z > SUR.max) return false;
+    const c = Math.floor(e0 + se * t + R), r = Math.floor(R - (n0 + sn * t));
+    if (c < 0 || r < 0 || c >= N || r >= N) return false;
+    if (SUR.h[r * N + c] > z) return true;
+  }
+}
+
 /* Hours of direct sun on a bed on one day: the share of the bed in sun, every ten minutes, from sunrise to sunset.
    am and pm split at the moment the sun passes south. Kept until the garden changes. */
 let sunCache = new Map();
@@ -660,7 +690,7 @@ function sunHours(b, year, mf) {
     if (s.alt < .5 * RAD) continue;
     day += 1 / 6;
     let lit = 0;
-    for (const [x, y] of pts) if (!shaded(x, y, z, s)) lit++;
+    for (const [x, y] of pts) if (!shaded(x, y, z, s) && !shadedBySurround(x, y, z, s)) lit++;
     const hrs = lit / pts.length / 6;
     total += hrs;
     if (s.az < Math.PI) am += hrs; else pm += hrs;
@@ -784,6 +814,7 @@ function landSide() {
     }).join("")}</ul>
     ${(D.garden.items || []).length ? `<div class="block-label label">Övrigt i landet</div><ul class="beds">${D.garden.items.map(i => `<li><button class="bed-row${S.sel === i.id ? " on" : ""}" data-item="${i.id}"><span class="name">${ITEM_NAMES[i.type] || i.type}</span><span class="size">${cm(i.w)} × ${cm(i.d)} cm</span></button></li>`).join("")}</ul>` : ""}
     ${(D.garden.obstacles || []).length ? `<div class="block-label label">Skuggar landet</div><ul class="beds">${D.garden.obstacles.map(o => `<li><button class="bed-row${S.sel === o.id ? " on" : ""}" data-obs="${o.id}"><span class="name">${esc(o.name)}</span><span class="size">${m1(o.type === "terrace" ? o.ridge : o.ridge)} m ${o.type === "terrace" ? "högre" : "hög"}</span></button></li>`).join("")}</ul>` : ""}
+    ${SUR ? `<p class="hint" style="margin-top:12px">Träden och marken runt landet, 70 m åt varje håll, räknas också med: ${SUR.count} m² trädkronor, uppmätta med laser av Lantmäteriet 2022 (CC BY 4.0).</p>` : ""}
     <p class="hint" style="margin-top:16px">Staketet: ${m1(D.garden.w)} × ${m1(D.garden.d)} m, grinden på ${ROMAN_DIR[D.garden.gate.side]}.</p>
   </div>`;
 }
@@ -1144,6 +1175,7 @@ function loadScene() {
     }
     stageEl.querySelector("#stage-msg").hidden = true;
     scene.build(D.garden, plantsFor3D());
+    sceneSurround();
     sceneSun();
     if (S.sel) scene.select(S.sel);
   }).catch(() => {
@@ -1152,6 +1184,7 @@ function loadScene() {
   });
 }
 const sceneBuild = () => { if (scene) { scene.build(D.garden, plantsFor3D()); sceneSun(); } };
+const sceneSurround = () => { if (scene) scene.surround(SUR, D.garden.site.orient); };
 const sceneSun = () => { if (scene) scene.sun(sunDir(momentOf(S.year, S.month, S.hour))); };
 const scenePlants = () => { if (scene) scene.plants(plantsFor3D()); };
 
@@ -1424,6 +1457,8 @@ function dataSheet() {
     <h2 class="sheet-title">Spara och läs in</h2>
     <p class="muted">Allt sparas i den här webbläsaren. Spara en fil då och då, så finns landet kvar om något händer, och läs in den på en annan enhet.</p>
     <div class="chips" style="margin-top:18px"><button class="chip" data-export>Spara som fil</button><button class="chip" data-import>Läs in fil</button></div>
+    <div class="block-label label">Källor</div>
+    <p class="muted" style="margin-top:0">Träd och mark runt landet: Lantmäteriet, Laserdata Nedladdning skog (mars 2022) och Markhöjdmodell Nedladdning, licens CC BY 4.0.</p>
     <div class="block-label label">Börja om</div>
     <p class="muted" style="margin-top:0">Tar bort dina ändringar och lägger tillbaka skissen från bilderna.</p>
     <button class="danger" data-reset>${S.armed === "reset" ? "Tryck igen för att börja om" : "Börja om från skissen"}</button>`;
@@ -1668,7 +1703,7 @@ document.addEventListener("change", e => {
   }
   if (el.dataset.site) {
     const v = Number(el.value.replace(",", ".").trim());
-    if (Number.isFinite(v)) { D.garden.site[el.dataset.site] = v; changed(true); }
+    if (Number.isFinite(v)) { D.garden.site[el.dataset.site] = v; changed(true); sceneSurround(); }
     return refreshSheet();
   }
   if (el.dataset.date !== undefined && S.sheet.kind === "planting") {
@@ -1778,7 +1813,7 @@ async function updateApp(button) {
   const wipe = motion ? updateWipe(x, y, true) : null;
   try {
     if (motion) await new Promise(done => setTimeout(done, 520));
-    const files = [location.href.split("#")[0], "scene.js", "apple-touch-icon.png"];
+    const files = [location.href.split("#")[0], "scene.js", "omgivning.json", "apple-touch-icon.png"];
     await Promise.all(files.map(url => fetch(url, { cache: "reload" }).then(res => { if (!res.ok) throw new Error(url); })));
     if (motion) try { sessionStorage.setItem("updateWipe", JSON.stringify([x, y, Math.round(app.querySelector(".top-bar").getBoundingClientRect().bottom)])); } catch (e) {}
     location.reload();

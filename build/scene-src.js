@@ -98,6 +98,7 @@ export function createScene(el, { onPick } = {}) {
 
   let world = new Group();
   scene.add(world);
+  let env = null;   // the trees around the garden, kept when the garden is rebuilt
   let beds = new Map();      // bed id -> { group, walls[], plants: Group, len, axis }
   let groups = new Map();    // any id -> its group, for the highlight ring
   let ring = null;
@@ -637,6 +638,7 @@ export function createScene(el, { onPick } = {}) {
       } else camDir = { x: .43, z: .9 };
       // Shadows cover the garden and whatever casts shade on it.
       let half = Math.max(garden.w, garden.d) / 2 + 3;
+      if (env) half = Math.max(half, 45);   // nearby trees cast shadows on the garden too
       for (const o of (garden.obstacles || []).filter(o => o.type !== "terrace")) half = Math.max(half, Math.abs(X(o.x)) + 2, Math.abs(X(o.x + o.w)) + 2, Math.abs(Z(o.y)) + 2, Math.abs(Z(o.y + o.d)) + 2);
       Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 1, far: 140 });
       sun.shadow.camera.updateProjectionMatrix();
@@ -659,6 +661,43 @@ export function createScene(el, { onPick } = {}) {
       hemi.intensity = .25 + .75 * dawn;
       const sky = new Color(0x1c2638).lerp(new Color(0xf2b98a), Math.min(1, dawn * 1.6)).lerp(new Color(C.sky), day);
       scene.background = sky; scene.fog.color = sky;
+      render();
+    },
+    /* Trees around the garden from the height data: a crown on every 2 m where trees stand, as tall as measured.
+       sur: { n, unit, ground, trees } with row 0 to the north and the garden's centre in the middle; orient: the compass
+       bearing of the garden's back, to turn the world's east and north into the garden's axes. */
+    surround(sur, orient) {
+      if (env) { scene.remove(env); env.traverse(m => { if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); }); env = null; }
+      if (!sur) return;
+      const n = sur.n, R = n / 2, o = orient * Math.PI / 180, co = Math.cos(o), so = Math.sin(o);
+      const crowns = [];
+      for (let r = 0; r < n - 1; r += 2) for (let c = 0; c < n - 1; c += 2) {
+        let h = 0, gr = 0;
+        for (const [dr, dc] of [[0, 0], [0, 1], [1, 0], [1, 1]]) { const i = (r + dr) * n + c + dc; h = Math.max(h, sur.trees[i]); gr = Math.max(gr, sur.ground[i]); }
+        h *= sur.unit; gr *= sur.unit;
+        if (h < 2.5) continue;
+        const e = c + 1 - R, nn = R - (r + 1);
+        crowns.push([e * co - nn * so, e * so + nn * co, h, gr, crowns.length]);
+      }
+      env = new Group();
+      const geo = new IcosahedronGeometry(1, 1), o3 = new Object3D(), col = new Color();
+      const inst = new InstancedMesh(geo, mat(0xffffff, { roughness: .9 }), crowns.length);
+      const trunks = new InstancedMesh(new CylinderGeometry(.12, .18, 1, 6).translate(0, .5, 0), mat(0x5b4632), crowns.length);
+      crowns.forEach(([dx, dy, h, gr, i]) => {
+        const ch = Math.max(1.6, Math.min(9, h * .55)), rad = 1.45 + rand(i) * .5;
+        o3.position.set(dx + (rand(i + 7) - .5) * .6, gr + h - ch / 2, -dy + (rand(i + 9) - .5) * .6);
+        o3.rotation.set(0, rand(i + 3) * 6, 0); o3.scale.set(rad, ch / 2, rad); o3.updateMatrix();
+        inst.setMatrixAt(i, o3.matrix);
+        inst.setColorAt(i, col.setHSL(.27 + rand(i + 5) * .06, .38 + rand(i + 1) * .2, .2 + rand(i + 2) * .1));
+        o3.position.set(dx, gr, -dy); o3.rotation.set(0, 0, 0); o3.scale.set(1, Math.max(.1, h - ch * .8), 1); o3.updateMatrix();
+        trunks.setMatrixAt(i, o3.matrix);
+      });
+      inst.castShadow = inst.receiveShadow = trunks.castShadow = true;
+      env.add(inst, trunks);
+      scene.add(env);
+      const half = 45;
+      Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half });
+      sun.shadow.camera.updateProjectionMatrix();
       render();
     },
     plants(plants) { setPlants(plants, !matchMedia("(prefers-reduced-motion: reduce)").matches); },
