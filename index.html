@@ -158,6 +158,47 @@ input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border-radius
 .sun-bars .bar-out { flex: none; width: 100%; max-width: 38px; margin-top: auto; border-radius: 7px; background: #E7E5E0; display: flex; align-items: flex-end; overflow: hidden; }
 .sun-bars .bar-out i { display: block; width: 100%; border-radius: 7px; }
 .sun-bars .m { font-size: .75rem; color: var(--muted); }
+/* The garden page's side: a slim note, the time card with the year, the overview, beds as tiles, the rest folded away */
+.slim { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 10px 8px 10px 14px; border-radius: 12px; background: #FBF1C9; font-size: .9rem; line-height: 1.35; }
+.slim b { font-weight: 600; }
+.slim-x { flex: none; width: 32px; height: 32px; margin: -4px 0; display: flex; align-items: center; justify-content: center; border-radius: 16px; }
+.slim-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.when-top { align-items: center; }
+.when-sub { display: block; color: var(--muted); font-size: .88rem; margin-top: 2px; }
+.yr { display: flex; padding: 2px; border-radius: 15px; background: #ECEAE5; flex: none; }
+.yr button { min-height: 28px; padding: 0 10px; border-radius: 13px; font-size: .85rem; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.yr button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(20, 20, 10, .12); }
+.now { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.now-stat { padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; }
+.now-stat b { font: 600 1.5rem/1.1 var(--font); color: var(--accent); font-variant-numeric: tabular-nums; }
+.now-stat span { font-size: .8rem; color: var(--muted); }
+.now-stat.hot { background: var(--soft); border-color: transparent; }
+.now-line { margin-top: 8px; font-size: .95rem; color: var(--muted); }
+.tiles-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.bt { display: flex; flex-direction: column; gap: 7px; min-width: 0; padding: 10px 12px 11px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); transition: transform .16s var(--ease), border-color .2s, box-shadow .2s; }
+.bt:active { transform: scale(.97); }
+.bt.on { border-color: #F2C94C; box-shadow: 0 0 0 2px #F2C94C; }
+.bt-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.bt-name { font-weight: 500; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-sun { flex: none; font-size: .75rem; font-weight: 600; padding: 1px 7px; border-radius: 9px; color: #1B1A18; font-variant-numeric: tabular-nums; }
+.bt-bar { position: relative; height: 10px; border-radius: 5px; background: #E7E5E0; overflow: hidden; }
+.bt-bar i { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--surface); transition: opacity .25s; }
+.bt-bar i.off { opacity: .3; }
+.bt-st { font-size: .8rem; line-height: 1.3; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+.bt-st::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; background: #CFCBC2; }
+.bt-st.st-skord { color: var(--accent); font-weight: 600; }
+.bt-st.st-skord::before { background: #E07A4F; }
+.bt-st.st-soon::before, .bt-st.st-inne::before { background: #F2C94C; }
+.bt-st.st-vaxer::before { background: var(--dot); }
+.more { margin-top: 22px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.more summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-block: 14px; font-weight: 500; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary span { color: var(--muted); font-size: .85rem; font-weight: 400; }
+.more summary::after { content: "›"; color: var(--accent); transition: transform .2s var(--ease); }
+.more[open] summary::after { transform: rotate(90deg); }
+.more[open] { padding-bottom: 12px; }
+.more .block-label:first-of-type { margin-top: 0; }
+@media (min-width: 700px) and (max-width: 999px) { .tiles-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .warn { margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: #FBF1C9; font-size: .98rem; }
 .warn b { font-weight: 600; }
 .warn .x { display: inline-block; margin-top: 6px; color: var(--accent); font-weight: 500; min-height: 32px; }
@@ -725,6 +766,7 @@ const ICON = {
   center: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>`,
   ruler: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>`,
   check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  sun: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>`,
   top: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg>`,
   close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`
 };
@@ -787,38 +829,90 @@ function land() {
     </div></div>
     ${S.edit ? `<div class="dock gutter"><div class="wrap dock-row"><button class="big light" data-sheet="garden">Mått och nytt</button><button class="big" data-edit>Klar</button></div></div>` : ""}`;
 }
+/* Where a planting is at a point in the season: planned, started indoors, growing, ready to harvest, or done. */
+function plantState(p, t) {
+  const c = CROP[p.crop];
+  if (!c) return "plan";
+  if (c.perennial) return t >= c.harvest[0] && t <= c.harvest[1] + .25 ? "skord" : "vaxer";
+  if (c.bloom && growth(p, t) > 0) return "vaxer";   // flowers bloom; nothing to harvest
+  if (growth(p, t) > 0) return t >= (monthOf(p.harvested) ?? c.harvest[0]) ? "skord" : "vaxer";
+  const start = monthOf(p.planted) ?? c.out[0];
+  if (t > start) return "klar";
+  if (c.inside && t >= c.inside[0]) return "inne";
+  return "plan";
+}
+const lower = s => s.toLowerCase();
+const names = list => { const n = [...new Set(list.map(p => lower(CROP[p.crop].name)))]; return n.length > 2 ? `${n.slice(0, 2).join(", ")} +${n.length - 2}` : n.join(" och "); };
+// What is going on in a bed at the chosen time, most urgent first.
+function bedStatus(b) {
+  const ps = plantingsIn(b.id, S.year).filter(p => CROP[p.crop]), t = S.month;
+  if (!ps.length) return { k: "none", text: "Inget planerat" };
+  const st = ps.map(p => [p, plantState(p, t)]), of = k => st.filter(x => x[1] === k).map(x => x[0]);
+  if (of("skord").length) return { k: "skord", text: `Skörda ${names(of("skord"))}` };
+  const soon = of("plan").concat(of("inne")).filter(p => { const c = CROP[p.crop]; return c.out && c.out[0] - t <= 1; });
+  if (soon.length) { const c = CROP[soon[0].crop]; return { k: "soon", text: `${c.how === "sätt" ? "Sätt" : c.how === "plantera" ? "Plantera" : "Så"} ${names(soon)} snart` }; }
+  if (of("inne").length) return { k: "inne", text: `${names(of("inne"))[0].toUpperCase()}${names(of("inne")).slice(1)} förkultiveras` };
+  if (of("vaxer").length) return { k: "vaxer", text: `Växer: ${names(of("vaxer"))}` };
+  if (of("klar").length === ps.length) return { k: "klar", text: "Skördad" };
+  return { k: "plan", text: `Väntar: ${names(of("plan"))}` };
+}
+// The overview at the top: how many crops grow, what is ready, what to sow soon.
+function nowHtml() {
+  const ps = D.plantings.filter(p => p.year === S.year && CROP[p.crop] && bedById(p.bed)), t = S.month;
+  const st = ps.map(p => [p, plantState(p, t)]);
+  const growing = st.filter(x => x[1] === "vaxer" || x[1] === "skord").length;
+  const harvest = st.filter(x => x[1] === "skord").map(x => x[0]);
+  const soon = st.filter(x => (x[1] === "plan" || x[1] === "inne") && CROP[x[0].crop].out && CROP[x[0].crop].out[0] - t <= 1).map(x => x[0]);
+  const line = harvest.length ? `Skörda ${names(harvest)}` : soon.length ? `Snart: ${names(soon)}` : growing ? "Allt växer på" : ps.length ? "Inget i jorden just nu" : `Inget planerat för ${S.year}`;
+  return `<div class="now"><div class="now-stat"><b>${growing}</b><span>växer</span></div><div class="now-stat${harvest.length ? " hot" : ""}"><b>${harvest.length}</b><span>att skörda</span></div><div class="now-stat"><b>${soon.length}</b><span>att så snart</span></div></div>
+    <p class="now-line">${esc(line)}</p>`;
+}
+function tilesHtml() {
+  const list = [...D.garden.beds].sort((a, b) => (a.finish === "stone") - (b.finish === "stone"));
+  const sun = S.sun && S.mode === "plan";
+  return list.map(b => {
+    const ps = plantingsIn(b.id, S.year), stt = bedStatus(b), L = longSide(b);
+    const h = sun ? sunHours(b, S.year, S.month).total : 0;
+    return `<button class="bt${S.sel === b.id ? " on" : ""}" data-bed="${b.id}">
+      <span class="bt-top"><span class="bt-name">${esc(b.name)}</span>${sun ? `<span class="bt-sun" style="background:${sunColor(h)}">${m1(h)} h</span>` : ""}</span>
+      <span class="bt-bar">${ps.map(p => { const g = plantState(p, S.month); return `<i style="left:${p.from * 100}%;width:${(p.to - p.from) * 100}%;background:${CROP[p.crop]?.color}" class="${g === "vaxer" || g === "skord" ? "" : "off"}"></i>`; }).join("")}</span>
+      <span class="bt-st st-${stt.k}">${esc(stt.text)}</span>
+    </button>`;
+  }).join("");
+}
 function landSide() {
   const ys = years();
-  const list = [...D.garden.beds].sort((a, b) => (a.finish === "stone") - (b.finish === "stone"));
   const notice = D.garden.sketch && !ui.get("sketch-ok", false)
-    ? `<div class="warn"><b>Det här är en skiss</b> efter dina bilder. Alla mått är gissningar. Välj <b>Karta</b> och pennan för att flytta och ändra bäddar, eller tryck på en bädd och skriv in rätt mått.<br><button class="x" data-dismiss="sketch-ok">Jag förstår</button></div>` : "";
+    ? `<div class="slim"><span><b>Skiss:</b> måtten är gissade. Rätta dem under Karta med pennan, eller i varje bädd.</span><button class="slim-x" data-dismiss="sketch-ok" aria-label="Dölj">${ICON.close}</button></div>` : "";
+  const items = D.garden.items || [], obs = D.garden.obstacles || [];
   return `<div class="wrap">
     ${notice}
-    <div class="chips" role="group" aria-label="År">${ys.map(y => `<button class="chip small" data-year="${y}" aria-pressed="${y === S.year}">${y}</button>`).join("")}</div>
-    ${S.mode === "plan" && !S.edit ? `<div class="chips"><button class="chip small" data-sun-toggle aria-pressed="${S.sun}">☀ Sol per bädd</button></div>` : ""}
-    ${S.mode === "3d" || (S.sun && !S.edit) ? `<div class="when">
-      <div class="when-top"><b id="when-label">${dayLabel(S.month)}${S.mode === "3d" ? ` · ${clock(S.hour)}` : ""}</b><span id="when-sub">${whenSub()}</span></div>
+    ${S.edit ? `<div class="note-ok">Dra en bädd för att flytta den, och den runda knoppen i hörnet för att ändra storlek. Tryck på en bädd för att skriva in exakta mått. Två fingrar zoomar.</div>` : `<div class="when">
+      <div class="when-top"><b id="when-label">${dayLabel(S.month)}${S.mode === "3d" ? ` · ${clock(S.hour)}` : ""}</b>
+        <span class="yr" role="group" aria-label="År">${ys.map(y => `<button data-year="${y}" aria-pressed="${y === S.year}">${y}</button>`).join("")}</span></div>
+      <span class="when-sub" id="when-sub">${whenSub()}</span>
       <input type="range" min="3.5" max="10.75" step=".25" value="${S.month}" data-month aria-label="Tid på säsongen">
       <div class="months"><span>apr</span><span>maj</span><span>jun</span><span>jul</span><span>aug</span><span>sep</span><span>okt</span></div>
       ${S.mode === "3d" ? `<input type="range" min="4" max="22.5" step=".25" value="${S.hour}" data-hour aria-label="Klockan" class="clock-range">
       <div class="months"><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span></div>` : ""}
-    </div>` : ""}
-    ${S.mode === "plan" && S.sun && !S.edit ? `<div class="sun-legend"><span>Direkt sol en dag i ${MONTHS[Math.floor(S.month) - 1]}</span><div class="sun-scale"></div><div class="months"><span>0 h</span><span>4</span><span>7</span><span>10</span><span>14 h</span></div></div>` : ""}
-    ${S.edit ? `<div class="note-ok">Dra en bädd för att flytta den, och den runda knoppen i hörnet för att ändra storlek. Tryck på en bädd för att skriva in exakta mått. Två fingrar zoomar.</div>` : ""}
-    <div class="block-label label"><span>Bäddar ${S.year}</span><span>${m1(list.reduce((s, b) => s + area(b), 0))} m²</span></div>
-    <ul class="beds">${list.map(b => {
-      const ps = plantingsIn(b.id, S.year);
-      return `<li><button class="bed-row${S.sel === b.id ? " on" : ""}" data-bed="${b.id}">
-        <span class="name">${esc(b.name)}</span><span class="size">${cm(b.w)} × ${cm(b.d)} cm</span>
-        ${S.sun && S.mode === "plan" ? `<span class="crops"><span><i style="background:${sunColor(sunHours(b, S.year, S.month).total)}"></i>${hrs(sunHours(b, S.year, S.month).total)} sol i ${MON3[Math.floor(S.month) - 1]}</span></span>` : ""}
-        <span class="crops">${ps.length ? ps.map(p => `<span><i style="background:${CROP[p.crop]?.color}"></i>${esc(CROP[p.crop]?.name)}</span>`).join("") : `<span>Inget planerat</span>`}</span>
-      </button></li>`;
-    }).join("")}</ul>
-    ${(D.garden.items || []).length ? `<div class="block-label label">Övrigt i landet</div><ul class="beds">${D.garden.items.map(i => `<li><button class="bed-row${S.sel === i.id ? " on" : ""}" data-item="${i.id}"><span class="name">${ITEM_NAMES[i.type] || i.type}</span><span class="size">${cm(i.w)} × ${cm(i.d)} cm</span></button></li>`).join("")}</ul>` : ""}
-    ${(D.garden.obstacles || []).length ? `<div class="block-label label">Skuggar landet</div><ul class="beds">${D.garden.obstacles.map(o => `<li><button class="bed-row${S.sel === o.id ? " on" : ""}" data-obs="${o.id}"><span class="name">${esc(o.name)}</span><span class="size">${m1(o.type === "terrace" ? o.ridge : o.ridge)} m ${o.type === "terrace" ? "högre" : "hög"}</span></button></li>`).join("")}</ul>` : ""}
-    ${SUR ? `<p class="hint" style="margin-top:12px">Träden och marken runt landet, 70 m åt varje håll, räknas också med: ${SUR.count} m² trädkronor, uppmätta med laser av Lantmäteriet 2022 (CC BY 4.0).</p>` : ""}
-    <p class="hint" style="margin-top:16px">Staketet: ${m1(D.garden.w)} × ${m1(D.garden.d)} m, grinden på ${ROMAN_DIR[D.garden.gate.side]}.</p>
+      ${S.mode === "plan" && S.sun ? `<div class="sun-legend"><div class="sun-scale"></div><div class="months"><span>0 h sol</span><span>4</span><span>7</span><span>10</span><span>14 h</span></div></div>` : ""}
+    </div>`}
+    <div id="now">${nowHtml()}</div>
+    <div class="block-label label"><span>Bäddar</span><span>${m1(D.garden.beds.reduce((a, b) => a + area(b), 0))} m²</span></div>
+    <div class="tiles-grid" id="tiles">${tilesHtml()}</div>
+    <details class="more"${S.moreOpen ? " open" : ""}><summary>Mer om landet<span>${items.length + obs.length} saker, mått och källor</span></summary>
+      ${items.length ? `<div class="block-label label">I landet</div><ul class="beds">${items.map(i => `<li><button class="bed-row${S.sel === i.id ? " on" : ""}" data-item="${i.id}"><span class="name">${ITEM_NAMES[i.type] || i.type}</span><span class="size">${cm(i.w)} × ${cm(i.d)} cm</span></button></li>`).join("")}</ul>` : ""}
+      ${obs.length ? `<div class="block-label label">Skuggar landet</div><ul class="beds">${obs.map(o => `<li><button class="bed-row${S.sel === o.id ? " on" : ""}" data-obs="${o.id}"><span class="name">${esc(o.name)}</span><span class="size">${m1(o.ridge)} m ${o.type === "terrace" ? "högre" : "hög"}</span></button></li>`).join("")}</ul>` : ""}
+      ${SUR ? `<p class="hint" style="margin-top:12px">Träden och marken runt landet, 70 m åt varje håll, räknas också med: ${SUR.count} m² trädkronor, uppmätta med laser av Lantmäteriet 2022 (CC BY 4.0).</p>` : ""}
+      <p class="hint" style="margin-top:8px">Staketet: ${m1(D.garden.w)} × ${m1(D.garden.d)} m, grinden på ${ROMAN_DIR[D.garden.gate.side]}.</p>
+    </details>
   </div>`;
+}
+// Updates the overview and the beds as the time slider moves, without touching the slider itself.
+let overRaf = 0;
+function refreshOverview() {
+  cancelAnimationFrame(overRaf);
+  overRaf = requestAnimationFrame(() => { const n = $("#now"), t = $("#tiles"); if (n) n.innerHTML = nowHtml(); if (t) t.innerHTML = tilesHtml(); });
 }
 function whenSub() {
   if (S.mode === "3d") {
@@ -1138,7 +1232,7 @@ function stage() {
   stageEl.innerHTML = `<div class="three" id="three"></div><svg id="plan" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="stage-msg" id="stage-msg">Bygger landet…</div>
     <span class="stage-cap" id="stage-cap"></span>
-    <div class="stage-tools"><button class="round" data-top aria-pressed="false" aria-label="Se landet ovanifrån">${ICON.top}</button><button class="round" data-recenter aria-label="Visa hela landet">${ICON.center}</button></div>
+    <div class="stage-tools"><button class="round" data-sun-toggle aria-pressed="false" aria-label="Sol per bädd">${ICON.sun}</button><button class="round" data-top aria-pressed="false" aria-label="Se landet ovanifrån">${ICON.top}</button><button class="round" data-recenter aria-label="Visa hela landet">${ICON.center}</button></div>
     <div class="pick-card" id="pick-card" hidden></div>`;
   const svg = stageEl.querySelector("#plan");
   svg.addEventListener("pointerdown", planDown);
@@ -1161,6 +1255,7 @@ function mountStage() {
   el.querySelector("#stage-cap").textContent = S.mode === "plan" ? (S.edit ? "Redigerar" : "Ovanifrån") : `${S.year}`;
   el.querySelector("#stage-cap").hidden = S.mode === "3d";
   el.querySelector("[data-top]").hidden = S.mode !== "3d";
+  const sb = el.querySelector("[data-sun-toggle]"); sb.hidden = S.mode !== "plan" || S.edit; sb.setAttribute("aria-pressed", S.sun);
   if (S.mode === "plan") { el.querySelector("#stage-msg").hidden = true; requestAnimationFrame(drawPlan); }
   else loadScene();
   refreshCard(false);
@@ -1595,7 +1690,7 @@ document.addEventListener("click", e => {
   if (d.addCropFor) return openSheet({ kind: "addcrop", id: d.addCropFor });
   if (d.openObj) return openSheet({ kind: itemById(d.openObj) ? "item" : "obstacle", id: d.openObj });
   if (d.foot) { const o = obsById(S.sheet.id); o.foot = d.foot; changed(true); return refreshSheet(); }
-  if ("sunToggle" in d) { S.sun = !S.sun; ui.set("sun", S.sun); plan.zoom = 1; plan.cx = plan.cy = null; drawPlan(); return refreshSide(); }
+  if ("sunToggle" in d) { S.sun = !S.sun; ui.set("sun", S.sun); t.setAttribute("aria-pressed", S.sun); plan.zoom = 1; plan.cx = plan.cy = null; drawPlan(); return refreshSide(); }
   if ("deleteObs" in d) {
     if (S.armed !== "obs") { S.armed = "obs"; return refreshSheet(); }
     D.garden.obstacles = D.garden.obstacles.filter(o => o.id !== S.sheet.id);
@@ -1727,7 +1822,8 @@ document.addEventListener("input", e => {
     S.month = Number(el.value);
     $("#when-label").textContent = dayLabel(S.month) + (S.mode === "3d" ? ` · ${clock(S.hour)}` : "");
     $("#when-sub").textContent = whenSub();
-    if (S.mode === "plan") { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(() => { drawPlan(); refreshBedSun(); }); return; }
+    refreshOverview();
+    if (S.mode === "plan") { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(drawPlan); return; }
     sceneSun();
     return scenePlantsSoon();
   }
@@ -1750,13 +1846,6 @@ document.addEventListener("input", e => {
   if (el.dataset.entryField === "date") refreshSheet();
 });
 let plantsRaf = 0;
-// The hours of sun in the bed list follow the month on the map.
-function refreshBedSun() {
-  const side = $("#side"); if (!side) return;
-  const keep = side.querySelector("[data-month]");
-  const t = side.scrollTop; side.innerHTML = landSide(); side.scrollTop = t;
-  const r = side.querySelector("[data-month]"); if (r && keep) r.value = S.month;
-}
 // While a slider is dragged the plants follow at once, without the growing animation, so dragging stays smooth.
 let plantsAt = 0, plantsTimer = 0;
 function scenePlantsSoon() {
@@ -1765,6 +1854,7 @@ function scenePlantsSoon() {
   if (performance.now() - plantsAt > 100) requestAnimationFrame(run); else plantsTimer = setTimeout(run, 100);
 }
 
+document.addEventListener("toggle", e => { if (e.target.classList && e.target.classList.contains("more")) S.moreOpen = e.target.open; }, true);
 document.addEventListener("keydown", e => {
   if (!sheet.hidden && e.key === "Escape") return closeSheet();
   const taskEl = e.target.closest && e.target.closest("[data-task]");
