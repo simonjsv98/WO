@@ -6,7 +6,7 @@ import {
   BoxGeometry, PlaneGeometry, CylinderGeometry, ConeGeometry, IcosahedronGeometry, DodecahedronGeometry, TorusGeometry,
   SphereGeometry, MeshStandardMaterial, MeshBasicMaterial, LineBasicMaterial, LineSegments, BufferGeometry, Float32BufferAttribute,
   InstancedMesh, Object3D, Raycaster, Vector2, Vector3, CanvasTexture, RepeatWrapping, SRGBColorSpace, PCFSoftShadowMap,
-  ACESFilmicToneMapping, DoubleSide, MathUtils, Shape, ExtrudeGeometry
+  ACESFilmicToneMapping, DoubleSide, MathUtils, Shape, ExtrudeGeometry, Box3
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
@@ -99,9 +99,12 @@ export function createScene(el, { onPick } = {}) {
   let world = new Group();
   scene.add(world);
   let beds = new Map();      // bed id -> { group, walls[], plants: Group, len, axis }
+  let groups = new Map();    // any id -> its group, for the highlight ring
+  let ring = null;
   let pickables = [];
   let size = { w: 10, d: 8 };
-  let extra = { w: 0, d: 0, cx: 0, cz: 0 };   // how far buildings that shade the garden reach outside it
+  let extra = { w: 0, d: 0, cx: 0, cz: 0 };
+  let camDir = { x: .43, z: .9 };   // horizontal direction from the garden to the camera
   let selected = null;
   let firstFrame = true;
 
@@ -112,6 +115,8 @@ export function createScene(el, { onPick } = {}) {
     world = new Group();
     scene.add(world);
     beds = new Map();
+    groups = new Map();
+    ring = null;
     pickables = [];
   }
   const X = x => x - size.w / 2, Z = y => size.d / 2 - y;
@@ -253,6 +258,7 @@ export function createScene(el, { onPick } = {}) {
     }
     if (b.trellis === "aframe") g.add(aframe(b, h, along));
     world.add(g);
+    groups.set(b.id, g);
     beds.set(b.id, { group: g, walls, wallMat: wall, plants, data: b, h });
   }
 
@@ -339,6 +345,7 @@ export function createScene(el, { onPick } = {}) {
     if (it.rot) g.rotation.y = -it.rot * Math.PI / 180;
     g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.userData.itemId = it.id; pickables.push(o); } });
     world.add(g);
+    groups.set(it.id, g);
   }
 
   // A bed edged with stones, flush with the grass.
@@ -372,6 +379,7 @@ export function createScene(el, { onPick } = {}) {
     plants.position.y = .01;
     g.add(plants);
     world.add(g);
+    groups.set(b.id, g);
     // The ring of stones lights up when chosen.
     const stones = g.children[1];
     beds.set(b.id, { group: g, walls: [], wallMat: stones.material, plants, data: b, h: 0 });
@@ -385,12 +393,16 @@ export function createScene(el, { onPick } = {}) {
     const cx = X(o.x + o.w / 2), cz = Z(o.y + o.d / 2);
     if (o.type === "terrace") {
       // Higher ground: flat on top, sloping down to its east edge (towards the garden) over ramp metres.
-      const h = Math.max(.05, o.ridge || 1), ramp = Math.min(o.w, Math.max(.01, o.ramp || .01));
+      // foot: the side (in the garden's axes) where the slope meets the garden's level. E = +x, W = −x, N = +y (back), S = −y.
+      const foot = o.foot || "E", across = foot === "E" || foot === "W";
+      const span = across ? o.w : o.d, depth = across ? o.d : o.w;
+      const h = Math.max(.05, o.ridge || 1), ramp = Math.min(span, Math.max(.01, o.ramp || .01));
       const sh = new Shape();
-      sh.moveTo(o.w / 2, 0); sh.lineTo(o.w / 2 - ramp, h); sh.lineTo(-o.w / 2, h); sh.lineTo(-o.w / 2, 0); sh.closePath();
-      const geo = new ExtrudeGeometry(sh, { depth: o.d, bevelEnabled: false });
-      geo.translate(0, 0, -o.d / 2);
+      sh.moveTo(span / 2, 0); sh.lineTo(span / 2 - ramp, h); sh.lineTo(-span / 2, h); sh.lineTo(-span / 2, 0); sh.closePath();
+      const geo = new ExtrudeGeometry(sh, { depth, bevelEnabled: false });
+      geo.translate(0, 0, -depth / 2);
       const m = new Mesh(geo, new MeshStandardMaterial({ color: 0x9fb87a, map: grassTex, roughness: .95 }));
+      m.rotation.y = { E: 0, W: Math.PI, N: Math.PI / 2, S: -Math.PI / 2 }[foot];
       m.position.set(cx, o.base || 0, cz);
       m.receiveShadow = m.castShadow = true;
       g.add(m);
@@ -416,6 +428,7 @@ export function createScene(el, { onPick } = {}) {
     }
     g.traverse(m => { if (m.isMesh) { m.userData.obsId = o.id; pickables.push(m); } });
     world.add(g);
+    groups.set(o.id, g);
   }
 
   /* ---------- Plants ---------- */
@@ -469,10 +482,10 @@ export function createScene(el, { onPick } = {}) {
     const span = Math.max(size.w + extra.w, (size.d + extra.d) * 1.2);
     const aspect = camera.aspect || 1;
     const dist = span * (aspect < 1 ? 1.45 : aspect < 1.4 ? 1.15 : .95) + 2;
-    const to = new Vector3(dist * .38 + extra.cx, dist * .62, dist * .8 + extra.cz);
-    controls.target.set(extra.cx, 0, extra.cz - .3);
+    const to = new Vector3(camDir.x * dist * .88, dist * .62, camDir.z * dist * .88);
+    controls.target.set(0, 0, 0);
     if (animate) {
-      const from = to.clone().multiplyScalar(1.5).add(new Vector3(dist * .6, dist * .3, 0));
+      const from = to.clone().multiplyScalar(1.5).add(new Vector3(camDir.z * dist * .6, dist * .3, -camDir.x * dist * .6));
       camera.position.copy(from);
       const start = performance.now(), ms = 1300;
       const step = now => {
@@ -565,11 +578,41 @@ export function createScene(el, { onPick } = {}) {
     growAnim = requestAnimationFrame(step);
   }
 
+  // The chosen bed (or thing) gets a glowing yellow ring on the ground around it, which settles in.
+  let ringAnim = 0;
   function highlight(id) {
     selected = id;
     for (const [bid, e] of beds) {
       const on = bid === id;
-      if (e.wallMat) { e.wallMat.emissive = new Color(on ? C.select : 0x000000); e.wallMat.emissiveIntensity = on ? .55 : 0; }
+      if (e.wallMat) { e.wallMat.emissive = new Color(on ? 0xF2C94C : 0x000000); e.wallMat.emissiveIntensity = on ? .45 : 0; }
+    }
+    if (ring) { world.remove(ring); ring.traverse(m => m.geometry && m.geometry.dispose()); ring = null; }
+    cancelAnimationFrame(ringAnim);
+    const g = id && groups.get(id);
+    if (g) {
+      const bb = new Box3().setFromObject(g);
+      const w = bb.max.x - bb.min.x, d = bb.max.z - bb.min.z, pad = .12, t = .09;
+      const m = new MeshBasicMaterial({ color: 0xF2C94C, transparent: true, opacity: .95, depthWrite: false });
+      ring = new Group();
+      const W = w + 2 * pad, Dd = d + 2 * pad;
+      for (const [rw, rd, x, z] of [[W + t, t, 0, Dd / 2], [W + t, t, 0, -Dd / 2], [t, Dd, W / 2, 0], [t, Dd, -W / 2, 0]]) {
+        const b = new Mesh(new BoxGeometry(rw, .04, rd), m);
+        b.position.set(x, .03, z);
+        ring.add(b);
+      }
+      ring.position.set((bb.min.x + bb.max.x) / 2, Math.max(0, bb.min.y), (bb.min.z + bb.max.z) / 2);
+      world.add(ring);
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const start = performance.now();
+        const step = now => {
+          const k = Math.min(1, (now - start) / 320), e = 1 - Math.pow(1 - k, 3);
+          ring.scale.set(1 + (1 - e) * .25, 1, 1 + (1 - e) * .25 * (W / Dd > 1 ? W / Dd : 1));
+          m.opacity = .95 * e;
+          render();
+          if (k < 1) ringAnim = requestAnimationFrame(step);
+        };
+        ringAnim = requestAnimationFrame(step);
+      }
     }
     render();
   }
@@ -584,10 +627,14 @@ export function createScene(el, { onPick } = {}) {
       for (const b of garden.beds) bed(b);
       for (const it of garden.items || []) item(it);
       for (const o of garden.obstacles || []) obstacle(o);
-      // Frame the garden together with the buildings next to it (at most 8 m of them).
-      let x0 = 0, x1 = garden.w, y0 = 0, y1 = garden.d;
-      for (const o of (garden.obstacles || []).filter(o => o.type !== "terrace")) { x0 = Math.min(x0, Math.max(-8, o.x)); x1 = Math.max(x1, Math.min(garden.w + 8, o.x + o.w)); y0 = Math.min(y0, Math.max(-8, o.y)); y1 = Math.max(y1, Math.min(garden.d + 8, o.y + o.d)); }
-      extra = { w: x1 - x0 - garden.w, d: y1 - y0 - garden.d, cx: (x0 + x1) / 2 - garden.w / 2, cz: garden.d / 2 - (y0 + y1) / 2 };
+      // The camera looks at the garden from the side away from the largest building, a little from the side, so the
+      // building stands behind the garden instead of in front of it.
+      const big = (garden.obstacles || []).filter(o => o.type !== "terrace").sort((a, b) => b.w * b.d - a.w * a.d)[0];
+      if (big) {
+        const bx = X(big.x + big.w / 2), bz = Z(big.y + big.d / 2), l = Math.hypot(bx, bz) || 1;
+        const a = Math.atan2(-bx / l, -bz / l) + .6;   // away from the building, turned 35°
+        camDir = { x: Math.sin(a), z: Math.cos(a) };
+      } else camDir = { x: .43, z: .9 };
       // Shadows cover the garden and whatever casts shade on it.
       let half = Math.max(garden.w, garden.d) / 2 + 3;
       for (const o of (garden.obstacles || []).filter(o => o.type !== "terrace")) half = Math.max(half, Math.abs(X(o.x)) + 2, Math.abs(X(o.x + o.w)) + 2, Math.abs(Z(o.y)) + 2, Math.abs(Z(o.y + o.d)) + 2);

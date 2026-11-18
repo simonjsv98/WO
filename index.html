@@ -98,7 +98,40 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .three, #plan { position: absolute; inset: 0; width: 100%; height: 100%; }
 #plan { display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
 .stage-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .95rem; padding: 20px; text-align: center; pointer-events: none; }
-.stage-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 8px; }
+.stage-tools { position: absolute; right: 12px; top: 12px; display: flex; gap: 8px; }
+/* The card for what you tapped: floats over the bottom of the stage, the garden stays visible and usable around it. */
+.pick-card { position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 440px; padding: 14px 16px 12px; border-radius: 18px; background: rgba(251, 250, 248, .96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(20, 24, 10, .18), 0 0 0 1px rgba(20, 24, 10, .06); }
+#app .pick-card, #app .pick-card * { touch-action: manipulation; }
+.pick-card.in { animation: card-in .26s var(--ease); }
+.pick-card.swap { animation: card-swap .22s var(--ease); }
+.pick-card.out { animation: card-out .18s ease-in forwards; }
+@keyframes card-in { from { opacity: 0; transform: translateY(18px); } }
+@keyframes card-swap { from { opacity: .4; transform: translateY(4px); } }
+@keyframes card-out { to { opacity: 0; transform: translateY(14px); } }
+.pc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pc-head { display: flex; flex-direction: column; min-width: 0; }
+.pc-eyebrow { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.pc-title { font: 500 1.25rem/1.2 var(--font); }
+.pc-x { width: 36px; height: 36px; margin: -6px -8px 0 0; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex: none; }
+.pc-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.pc-meta { color: var(--muted); font-size: .88rem; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.pc-sun { white-space: nowrap; }
+.pc-sun i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+.pc-bar { height: 26px; margin-top: 10px; border-radius: 7px; }
+.pc-empty { color: var(--muted); font-size: .88rem; margin-top: 6px; }
+.pc-actions { display: flex; gap: 8px; margin-top: 12px; }
+.pc-btn { min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); font-size: .95rem; font-weight: 500; display: inline-flex; align-items: center; transition: transform .16s var(--ease); }
+.pc-btn:active { transform: scale(.96); }
+.pc-btn.main { background: var(--cover); color: var(--on-cover); border-color: var(--cover); }
+@media (max-width: 699px) {
+  .pick-card { left: 8px; right: 8px; bottom: 8px; padding: 10px 12px 10px; border-radius: 16px; }
+  .pc-eyebrow { display: none; }
+  .pc-title { font-size: 1.1rem; }
+  .pc-bar { height: 20px; margin-top: 8px; }
+  .pc-bar span { font-size: .68rem; }
+  .pc-actions { margin-top: 8px; }
+  .pc-btn { min-height: 36px; padding: 0 12px; font-size: .9rem; }
+}
 .round { width: 44px; height: 44px; border-radius: 22px; background: rgba(251, 250, 248, .92); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(20, 20, 10, .08); transition: transform .16s var(--ease); }
 .round:active { transform: scale(.92); }
 .round svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -379,7 +412,7 @@ function sketch() {
     version: 1,
     garden: {
       w: 12, d: 8, sketch: true,
-      gate: { side: "S", at: 10.4, w: 1 },
+      gate: { side: "S", at: 10.4, w: 1 }, siteVersion: 2,
       site: defaultSite(),
       obstacles: defaultObstacles(),
       beds: [
@@ -417,20 +450,22 @@ function sketch() {
 /* Where the garden is and what shades it. The position here is general (the Göteborg area); the exact one is typed in
    the app and only kept on the device. For the sun a few kilometres make no difference.
    orient: the compass bearing the back of the garden (+y, up on the map) faces, in degrees. The garden runs parallel
-   with the barn, which on the satellite image is turned about 18° from north towards west. */
-function defaultSite() { return { lat: 57.7, lon: 12.0, orient: -18 }; }
-/* The building (a barn) west of the garden (about 10 m to the ridge, on ground 3 m higher), and the bank between them.
-   Sizes are read off a satellite image and should be checked. Metres in the garden's own coordinates. */
+   with the barn, which on the satellite image is turned about 18° from north towards west, and its front (gate and
+   border) faces the barn: the back points east-north-east, 72°. */
+function defaultSite() { return { lat: 57.7, lon: 12.0, orient: 72 }; }
+/* The building (a barn) in front of the garden, to the west-south-west (about 10 m to the ridge, on ground 3 m higher),
+   and the bank between them. Its long side runs along the garden's length. Sizes are read off a satellite image and
+   should be checked. Metres in the garden's own coordinates (x to the right on the map, y towards the back). */
 function defaultObstacles() {
   return [
-    { id: "o1", type: "building", name: "Byggnaden i väster", x: -16, y: -1, w: 11, d: 19, base: 3, eaves: 5, ridge: 10 },
-    { id: "o2", type: "terrace", name: "Slänten", x: -40, y: -20, w: 39, d: 50, base: 0, eaves: 3, ridge: 3, ramp: 4 }
+    { id: "o1", type: "building", name: "Byggnaden i väster", x: -6, y: -16.3, w: 19, d: 11, base: 3, eaves: 5, ridge: 10 },
+    { id: "o2", type: "terrace", name: "Slänten", x: -25, y: -45, w: 62, d: 43.7, base: 0, eaves: 3, ridge: 3, ramp: 4, foot: "N" }
   ];
 }
 const ITEM_NAMES = { compost: "Kompost", obelisk: "Obelisk", stool: "Pall", trellis: "Spaljé" };
 const FINISH = { wood: "trälåda", white: "vit låda", stone: "kantad med sten" };
 const COVER = { null: "Ingen", hoops: "Bågar", fleece: "Fiberduk", net: "Nät" };
-const SIDES = { S: "Framsidan", E: "Östra sidan", N: "Baksidan", W: "Västra sidan" };
+const SIDES = { S: "Framsidan", E: "Högra sidan", N: "Baksidan", W: "Vänstra sidan" };
 
 /* ---------- Storage ---------- */
 const KEY = "odla-data";
@@ -440,6 +475,12 @@ if (!D || !D.garden) D = sketch();
 D.log ||= []; D.done ||= []; D.plantings ||= [];
 D.garden.site ||= defaultSite();
 D.garden.obstacles ||= defaultObstacles();
+// 2: the garden turned a quarter clockwise (its back faces east-north-east), with the barn in front of it.
+if ((D.garden.siteVersion || 1) < 2) {
+  if (D.garden.site.orient === -18) D.garden.site.orient = 72;
+  if (D.garden.obstacles.map(o => o.id).join() === "o1,o2") D.garden.obstacles = defaultObstacles();
+  D.garden.siteVersion = 2;
+}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} };
 const ui = {
   get(k, d) { try { const v = localStorage.getItem("odla-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -489,7 +530,7 @@ const fmtDate = d => { const [y, m, day] = d.split("-").map(Number); return `${d
 const today = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
 const range = (r) => r ? (Math.floor(r[0]) === Math.floor(r[1]) ? MONTHS[Math.floor(r[0]) - 1] : `${MONTHS[Math.floor(r[0]) - 1]}–${MONTHS[Math.min(11, Math.floor(r[1]) - 1)]}`) : "";
 const bedName = b => b ? b.name : "";
-const ROMAN_DIR = { S: "framsidan", N: "baksidan", E: "östra sidan", W: "västra sidan" };
+const ROMAN_DIR = { S: "framsidan", N: "baksidan", E: "högra sidan", W: "vänstra sidan" };
 
 /* How far a crop has come at a point in the season: 0 = not in the ground, 1 = full size. */
 function growth(p, t) {
@@ -564,8 +605,12 @@ const compass = az => COMPASS[Math.round(az / RAD / 45) % 8];
 
 // Height of an obstacle's top at a point: flat for higher ground, a gable roof along the longer side for a building.
 function topAt(o, x, y) {
-  // Higher ground slopes up from its east edge (towards the garden) over ramp metres.
-  if (o.type === "terrace") return (o.base || 0) + (o.ridge || 0) * Math.max(0, Math.min(1, (o.x + o.w - x) / (o.ramp || .01)));
+  // Higher ground slopes up from its foot (the edge towards the garden: foot E, W, N or S in the garden's axes) over ramp metres.
+  if (o.type === "terrace") {
+    const r = o.ramp || .01, f = o.foot || "E";
+    const k = f === "E" ? (o.x + o.w - x) / r : f === "W" ? (x - o.x) / r : f === "N" ? (o.y + o.d - y) / r : (y - o.y) / r;
+    return (o.base || 0) + (o.ridge || 0) * Math.max(0, Math.min(1, k));
+  }
   const alongY = o.d >= o.w, half = (alongY ? o.w : o.d) / 2;
   const u = alongY ? Math.abs(x - (o.x + o.w / 2)) : Math.abs(y - (o.y + o.d / 2));
   return (o.base || 0) + o.eaves + (Math.max(o.eaves, o.ridge) - o.eaves) * Math.max(0, 1 - u / half);
@@ -640,7 +685,8 @@ const ICON = {
   edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>`,
   center: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>`,
   ruler: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>`,
-  check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`
+  check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`
 };
 
 /* ---------- Views ---------- */
@@ -877,7 +923,7 @@ function drawPlan() {
     const stone = b.finish === "stone", along = b.w >= b.d, L = longSide(b);
     const frame = stone ? "#8F8B82" : b.finish === "white" ? "#F4F2EE" : "#C9A06E";
     const t = stone ? .06 : .07;
-    s += `<g data-obj="${b.id}" class="bed">`;
+    s += `<g data-obj="${b.id}" class="bed"${S.sel && !sel && !S.edit ? ` opacity=".5"` : ""}>`;
     s += `<rect x="${x}" y="${y}" width="${b.w}" height="${b.d}" rx="${stone ? .25 : .03}" fill="${stone ? "#5A4636" : frame}" ${stone ? `stroke="${frame}" stroke-width=".09" stroke-dasharray=".14 .08"` : `stroke="${b.finish === "white" ? "#C9C4BA" : "#A9824F"}" stroke-width="${px}"`}/>`;
     if (!stone) s += `<rect x="${x + t}" y="${y + t}" width="${b.w - 2 * t}" height="${b.d - 2 * t}" fill="#4A382B"/>`;
     // In sun mode the bed shows its hours of sun instead of its crops.
@@ -901,7 +947,7 @@ function drawPlan() {
     }
     if (b.cover && !(S.sun && !S.edit)) s += `<rect x="${x + t}" y="${y + t}" width="${b.w - 2 * t}" height="${b.d - 2 * t}" fill="${b.cover === "fleece" ? "rgba(255,255,255,.55)" : "url(#hoops)"}"/>`;
     if (b.trellis) s += `<line x1="${along ? x + L * .1 : x + b.w / 2}" y1="${along ? y + b.d / 2 : y + b.d * .1}" x2="${along ? x + L * .9 : x + b.w / 2}" y2="${along ? y + b.d / 2 : y + b.d * .9}" stroke="#E2CC8E" stroke-width=".06"/>`;
-    if (sel) s += `<rect x="${x - .06}" y="${y - .06}" width="${b.w + .12}" height="${b.d + .12}" rx=".08" fill="none" stroke="#24412C" stroke-width="${px * 3}"/>`;
+    if (sel) s += `<rect x="${x - .1}" y="${y - .1}" width="${b.w + .2}" height="${b.d + .2}" rx=".1" fill="none" stroke="#F2C94C" stroke-width="${Math.max(.07, px * 5)}"/><rect x="${x - .1}" y="${y - .1}" width="${b.w + .2}" height="${b.d + .2}" rx=".1" fill="none" stroke="#24412C" stroke-width="${px * 1.5}"/>`;
     // Name above the bed (or inside when there's room), size below
     if (!(S.sun && !S.edit)) s += `<text x="${x + b.w / 2}" y="${y - fs * .45}" font-size="${fs}" fill="#24412C" text-anchor="middle" font-weight="600">${esc(b.name)}</text>`;
     if (S.edit || sel) s += `<text x="${x + b.w / 2}" y="${y + b.d + fs * 1.05}" font-size="${fs * .82}" fill="#5B574F" text-anchor="middle">${cm(b.w)} × ${cm(b.d)}</text>`;
@@ -912,9 +958,19 @@ function drawPlan() {
   if (S.sun || S.edit) for (const o of g.obstacles || []) {
     const sel = S.sel === o.id, x = o.x, y = Y(o.y + o.d);
     if (o.type === "terrace") {
-      const ex = o.x + o.w;   // the edge facing the garden
-      s += `<g data-obj="${o.id}" class="bed"><line x1="${ex}" y1="${Y(Math.max(o.y, -2))}" x2="${ex}" y2="${Y(Math.min(o.y + o.d, g.d + 2))}" stroke="#6F5A3F" stroke-width="${sel ? .12 : .07}" stroke-dasharray=".25 .12"/>`;
-      s += `<text transform="translate(${ex - fs * .5} ${Y(g.d / 2)}) rotate(-90)" font-size="${fs * .85}" text-anchor="middle" fill="#6F5A3F">${esc(o.name)} +${m1(o.ridge)} m</text></g>`;
+      // The foot of the slope (towards the garden) and its crest, ramp metres further away.
+      const f = o.foot || "E", r = o.ramp || 0, st = `stroke="#6F5A3F" stroke-width="${sel ? .12 : .07}"`;
+      let line;
+      if (f === "E" || f === "W") {
+        const ex = f === "E" ? o.x + o.w : o.x, cx = f === "E" ? ex - r : ex + r, y1 = Y(Math.max(o.y, -2)), y2 = Y(Math.min(o.y + o.d, g.d + 2));
+        line = `<line x1="${ex}" y1="${y1}" x2="${ex}" y2="${y2}" ${st} stroke-dasharray=".25 .12"/><line x1="${cx}" y1="${y1}" x2="${cx}" y2="${y2}" ${st}/>
+          <text transform="translate(${(ex + cx) / 2 + fs * .3} ${Y(g.d / 2)}) rotate(-90)" font-size="${fs * .85}" text-anchor="middle" fill="#6F5A3F">${esc(o.name)} +${m1(o.ridge)} m</text>`;
+      } else {
+        const ey = f === "N" ? o.y + o.d : o.y, cy = f === "N" ? ey - r : ey + r, x1 = Math.max(o.x, -2), x2 = Math.min(o.x + o.w, g.w + 2);
+        line = `<line x1="${x1}" y1="${Y(ey)}" x2="${x2}" y2="${Y(ey)}" ${st} stroke-dasharray=".25 .12"/><line x1="${x1}" y1="${Y(cy)}" x2="${x2}" y2="${Y(cy)}" ${st}/>
+          <text x="${g.w / 2}" y="${Y((ey + cy) / 2) + fs * .35}" font-size="${fs * .85}" text-anchor="middle" fill="#6F5A3F">${esc(o.name)} +${m1(o.ridge)} m</text>`;
+      }
+      s += `<g data-obj="${o.id}" class="bed">${line}</g>`;
       continue;
     }
     const alongY = o.d >= o.w;
@@ -943,7 +999,8 @@ function drawPlan() {
   s += dimLine(-.5, 0, -.5, g.d, `${m2(g.d)} m`, px, fs, false, true);
   s = `<defs><pattern id="hoops" width=".6" height=".6" patternUnits="userSpaceOnUse"><path d="M0 .3H.6" stroke="rgba(255,255,255,.75)" stroke-width=".035"/></pattern></defs>` + s;
   // Compass
-  s += `<g transform="translate(${g.w + .3} ${-.1})" opacity=".7"><path d="M0 -.32L.12 0H-.12Z" fill="#24412C"/><text y="${fs * .95}" font-size="${fs * .8}" text-anchor="middle" fill="#24412C">N</text></g>`;
+  // North arrow: the map has the garden's back up, so north points wherever the compass says.
+  s += `<g transform="translate(${-.5} ${-.85})" opacity=".8"><g transform="rotate(${-g.site.orient})"><path d="M0 -.42L.13 .12L0 .04L-.13 .12Z" fill="#24412C"/></g><text y="${fs * 1.35}" font-size="${fs * .8}" text-anchor="middle" fill="#24412C">N</text></g>`;
   svg.innerHTML = s;
 }
 function dimLine(x1, y1, x2, y2, label, px, fs, horiz, ends) {
@@ -1040,7 +1097,8 @@ function stage() {
   stageEl.innerHTML = `<div class="three" id="three"></div><svg id="plan" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="stage-msg" id="stage-msg">Bygger landet…</div>
     <span class="stage-cap" id="stage-cap"></span>
-    <div class="stage-tools"><button class="round" data-recenter aria-label="Visa hela landet">${ICON.center}</button></div>`;
+    <div class="stage-tools"><button class="round" data-recenter aria-label="Visa hela landet">${ICON.center}</button></div>
+    <div class="pick-card" id="pick-card" hidden></div>`;
   const svg = stageEl.querySelector("#plan");
   svg.addEventListener("pointerdown", planDown);
   svg.addEventListener("pointermove", planMove);
@@ -1063,6 +1121,7 @@ function mountStage() {
   el.querySelector("#stage-cap").hidden = S.mode === "3d";
   if (S.mode === "plan") { el.querySelector("#stage-msg").hidden = true; requestAnimationFrame(drawPlan); }
   else loadScene();
+  refreshCard(false);
 }
 function loadScene() {
   if (scene) { $("#stage-msg").hidden = true; scene.resize(); return; }
@@ -1088,17 +1147,69 @@ const sceneBuild = () => { if (scene) { scene.build(D.garden, plantsFor3D()); sc
 const sceneSun = () => { if (scene) scene.sun(sunDir(momentOf(S.year, S.month, S.hour))); };
 const scenePlants = () => { if (scene) scene.plants(plantsFor3D()); };
 
+/* Tapping a bed (or anything else) in 3D, on the map or in the list marks it and shows a small card over the stage.
+   The garden stays in view and can still be turned and tapped; the card opens the full sheet when you want more. */
 function pick(id) {
   S.sel = id;
   if (scene) scene.select(id);
   if (S.mode === "plan") drawPlan();
   refreshSide();
-  if (!id) return;
-  if (bedById(id)) openSheet({ kind: "bed", id });
-  else if (itemById(id)) openSheet({ kind: "item", id });
-  else if (obsById(id)) openSheet({ kind: "obstacle", id });
+  refreshCard(true);
+  if (id && S.mode === "plan") requestAnimationFrame(() => keepAboveCard(id));
+}
+// On the map, move the view so the chosen bed isn't hidden behind the card.
+function keepAboveCard(id) {
+  const svg = document.getElementById("plan"), card = stageEl && stageEl.querySelector("#pick-card");
+  const el = svg && svg.querySelector(`[data-obj="${id}"]`);
+  if (!el || !card || card.hidden) return;
+  const r = el.getBoundingClientRect(), c = card.getBoundingClientRect(), st = stageEl.getBoundingClientRect();
+  const over = r.bottom - (c.top - 10);
+  if (over <= 0 || r.top - over < st.top + 8) return;
+  const B = planBounds(), k = svg.viewBox.baseVal.width / svg.getBoundingClientRect().width;
+  plan.cx = plan.cx ?? (B.x0 + B.x1) / 2;
+  plan.cy = (plan.cy ?? (B.y0 + B.y1) / 2) - over * k;
+  drawPlan();
+}
+function cardBody(id) {
+  const b = bedById(id);
+  if (b) {
+    const ps = plantingsIn(b.id, S.year), L = longSide(b), sun = sunHours(b, S.year, S.month);
+    return `<div class="pc-top"><div class="pc-head"><span class="pc-eyebrow">${b.finish === "stone" ? "Odlingsyta" : "Bädd"} · ${S.year}</span><span class="pc-title">${esc(b.name)}</span></div>
+        <button class="pc-x" data-unpick aria-label="Avmarkera">${ICON.close}</button></div>
+      <div class="pc-meta">${cm(b.w)} × ${cm(b.d)} cm · ${m2(area(b))} m² · <span class="pc-sun"><i style="background:${sunColor(sun.total)}"></i>${hrs(sun.total)} sol i ${MON3[Math.floor(S.month) - 1]}</span></div>
+      <div class="bar pc-bar">${ps.map(p => `<span style="left:${p.from * 100}%;width:${(p.to - p.from) * 100}%;background:${CROP[p.crop]?.color}">${(p.to - p.from) * L > .9 ? esc(CROP[p.crop]?.name) : ""}</span>`).join("")}</div>
+      ${ps.length ? "" : `<p class="pc-empty">Inget planerat ${S.year}.</p>`}
+      <div class="pc-actions"><button class="pc-btn main" data-open-bed="${b.id}">Visa allt</button><button class="pc-btn" data-add-crop-for="${b.id}">+ Gröda</button><button class="pc-btn" data-new-entry="${b.id}">Dagbok</button></div>`;
+  }
+  const it = itemById(id), o = obsById(id), x = it || o;
+  if (!x) return "";
+  const title = it ? (ITEM_NAMES[it.type] || it.type) : o.name;
+  const meta = o ? (o.type === "terrace" ? `${m1(o.ridge)} m högre än landet` : `${cm(o.w)} × ${cm(o.d)} cm · ${m1(o.ridge)} m till nocken`) : `${cm(x.w)} × ${cm(x.d)} cm`;
+  return `<div class="pc-top"><div class="pc-head"><span class="pc-eyebrow">${o ? "Skuggar landet" : "I landet"}</span><span class="pc-title">${esc(title)}</span></div>
+      <button class="pc-x" data-unpick aria-label="Avmarkera">${ICON.close}</button></div>
+    <div class="pc-meta">${meta}</div>
+    <div class="pc-actions"><button class="pc-btn main" data-open-obj="${x.id}">Ändra mått</button></div>`;
+}
+let cardTimer = 0;
+function refreshCard(animate) {
+  const card = stageEl && stageEl.querySelector("#pick-card");
+  if (!card) return;
+  const body = S.view === "land" && S.sel ? cardBody(S.sel) : "";
+  clearTimeout(cardTimer);
+  if (!body) {
+    if (card.hidden) return;
+    card.classList.add("out");
+    cardTimer = setTimeout(() => { card.hidden = true; card.classList.remove("out"); card.innerHTML = ""; }, reducedMotion() ? 0 : 180);
+    return;
+  }
+  const wasHidden = card.hidden;
+  card.innerHTML = body;
+  card.hidden = false;
+  card.classList.remove("out");
+  if (animate && !reducedMotion()) { card.classList.remove("in", "swap"); void card.offsetWidth; card.classList.add(wasHidden ? "in" : "swap"); }
 }
 function refreshSide() {
+  refreshCard(false);
   const side = $("#side");
   if (!side || S.view !== "land") return;
   const top = side.scrollTop, sc = app.querySelector(".land-scroll"), st = sc ? sc.scrollTop : 0;
@@ -1109,7 +1220,7 @@ function refreshSide() {
 /* ---------- Navigation ---------- */
 const DEPTH = { home: 0, land: 1, season: 1, log: 1 };
 function show(view, dir) {
-  transition(dir || (DEPTH[view] < DEPTH[S.view] ? "b" : "f"), () => { S.view = view; if (view !== "land") S.edit = false; });
+  transition(dir || (DEPTH[view] < DEPTH[S.view] ? "b" : "f"), () => { S.view = view; if (view !== "land") { S.edit = false; S.sel = null; if (scene) scene.select(null); } });
 }
 function draw() {
   app.dataset.section = S.view === "season" ? "season" : S.view === "log" ? "log" : "land";
@@ -1178,7 +1289,7 @@ function closeSheet() {
   sheet.classList.remove("settled");
   sheet.classList.add("closing");
   sheetTimer = setTimeout(() => { sheet.hidden = true; sheet.innerHTML = ""; sheet.classList.remove("closing"); }, reducedMotion() ? 0 : 200);
-  if (was && (was.kind === "bed" || was.kind === "item") && !S.edit) { S.sel = null; if (scene) scene.select(null); if (S.mode === "plan") drawPlan(); refreshSide(); }
+  if (was && S.view === "land") refreshSide();
 }
 
 const numField = (label, key, value, unit = "cm", note = "") => `<div class="field"><label for="f-${key}">${label}${note ? `<small>${note}</small>` : ""}</label><span class="unit" data-unit="${unit}"><input id="f-${key}" type="number" inputmode="numeric" data-field="${key}" value="${value}"></span></div>`;
@@ -1206,9 +1317,9 @@ function bedSheet() {
     <button class="add" data-new-entry="${b.id}">Skriv i dagboken</button>
     <div class="block-label label">Bädden</div>
     <div class="field wide"><input class="text-in" data-field="name" value="${esc(b.name)}" aria-label="Namn"></div>
-    ${numField("Längd", "w", cm(b.w), "cm", "öst–väst")}
+    ${numField("Längd", "w", cm(b.w), "cm", "vänster–höger på kartan")}
     ${numField("Bredd", "d", cm(b.d), "cm", "fram–bak")}
-    ${numField("Från västra staketet", "x", cm(b.x))}
+    ${numField("Från vänstra staketet", "x", cm(b.x))}
     ${numField("Från främre staketet", "y", cm(b.y), "cm", "minus = utanför")}
     ${b.finish !== "stone" ? numField("Höjd", "h", cm(b.h || .25)) : ""}
     <div class="label" style="margin-top:16px">Kant</div>
@@ -1237,15 +1348,16 @@ function obstacleSheet() {
     <p class="sheet-sub" style="margin-top:0">${terrace ? `Högre mark, ${m1(o.ridge)} m över landet` : `${cm(o.w)} × ${cm(o.d)} cm, ${m1(o.ridge)} m till nocken`}</p>
     <div class="field wide" style="margin-top:12px"><input class="text-in" data-field="name" value="${esc(o.name)}" aria-label="Namn"></div>
     <div class="block-label label">Höjd</div>
-    ${terrace ? numField("Högre än landet", "ridge", cm(o.ridge)) + numField("Slänten är", "ramp", cm(o.ramp || 0), "cm", "bred, från foten till krönet") : `
+    ${terrace ? numField("Högre än landet", "ridge", cm(o.ridge)) + numField("Slänten är", "ramp", cm(o.ramp || 0), "cm", "bred, från foten till krönet")
+      + `<div class="label" style="margin-top:14px">Foten av slänten är på dess</div><div class="chips">${[["N", "bakre kant"], ["S", "främre kant"], ["E", "högra kant"], ["W", "vänstra kant"]].map(([k, v]) => `<button class="chip small" data-foot="${k}" aria-pressed="${(o.foot || "E") === k}">${v}</button>`).join("")}</div>` : `
       ${numField("Marken där den står", "base", cm(o.base || 0), "cm", "över landets mark")}
       ${numField("Väggarna", "eaves", cm(o.eaves))}
       ${numField("Nocken", "ridge", cm(o.ridge), "cm", "högsta punkten")}`}
     <div class="block-label label">Plats</div>
-    <p class="hint" style="margin-top:0">${terrace ? "Slänten börjar (foten) där ytan slutar mot landet. Minus betyder väster om eller framför staketet." : "Minus betyder väster om eller framför staketet. Taket lutar åt långsidorna."}</p>
-    ${numField("Längd", "w", cm(o.w), "cm", "öst–väst")}
+    <p class="hint" style="margin-top:0">${terrace ? "Slänten börjar (foten) där ytan slutar mot landet. Minus betyder till vänster om eller framför staketet, som på kartan." : "Minus betyder till vänster om eller framför staketet, som på kartan. Taket lutar åt långsidorna."}</p>
+    ${numField("Längd", "w", cm(o.w), "cm", "vänster–höger på kartan")}
     ${numField("Bredd", "d", cm(o.d), "cm", "fram–bak")}
-    ${numField("Från västra staketet", "x", cm(o.x))}
+    ${numField("Från vänstra staketet", "x", cm(o.x))}
     ${numField("Från främre staketet", "y", cm(o.y))}
     <button class="danger" data-delete-obs>${S.armed === "obs" ? "Tryck igen för att ta bort" : "Ta bort"}</button>`;
 }
@@ -1268,9 +1380,9 @@ function itemSheet() {
     <h2 class="sheet-title">${ITEM_NAMES[it.type] || it.type}</h2>
     <p class="sheet-sub" style="margin-top:0">${cm(it.w)} × ${cm(it.d)} cm</p>
     <div class="block-label label">Mått och plats</div>
-    ${numField("Längd", "w", cm(it.w), "cm", "öst–väst")}
+    ${numField("Längd", "w", cm(it.w), "cm", "vänster–höger på kartan")}
     ${numField("Bredd", "d", cm(it.d), "cm", "fram–bak")}
-    ${numField("Från västra staketet", "x", cm(it.x))}
+    ${numField("Från vänstra staketet", "x", cm(it.x))}
     ${numField("Från främre staketet", "y", cm(it.y))}
     ${it.type === "obelisk" || it.type === "compost" ? numField("Höjd", "h", cm(it.h || (it.type === "obelisk" ? 2.2 : 1))) : ""}
     <button class="danger" data-delete-item>${S.armed === "item" ? "Tryck igen för att ta bort" : "Ta bort"}</button>`;
@@ -1279,19 +1391,19 @@ function gardenSheet() {
   const g = D.garden;
   return `<div class="sheet-eyebrow label">Landet</div>
     <h2 class="sheet-title">Mått och nytt</h2>
-    <p class="sheet-sub" style="margin-top:0">Mät insidan av staketet. Allt mäts från västra staketet och från framsidan, där grinden är.</p>
+    <p class="sheet-sub" style="margin-top:0">Mät insidan av staketet. Allt mäts från vänstra staketet och från framsidan, där grinden är, som på kartan.</p>
     <div class="block-label label">Staketet</div>
-    ${numField("Längd", "gw", cm(g.w), "cm", "öst–väst")}
+    ${numField("Längd", "gw", cm(g.w), "cm", "vänster–höger på kartan")}
     ${numField("Bredd", "gd", cm(g.d), "cm", "fram–bak")}
     <div class="label" style="margin-top:16px">Grinden sitter på</div>
     <div class="chips">${Object.entries(SIDES).map(([k, v]) => `<button class="chip small" data-gate-side="${k}" aria-pressed="${g.gate.side === k}">${v}</button>`).join("")}</div>
-    <div style="margin-top:8px">${numField(g.gate.side === "S" || g.gate.side === "N" ? "Grinden från västra hörnet" : "Grinden från främre hörnet", "gat", cm(g.gate.at))}
+    <div style="margin-top:8px">${numField(g.gate.side === "S" || g.gate.side === "N" ? "Grinden från vänstra hörnet" : "Grinden från främre hörnet", "gat", cm(g.gate.at))}
     ${numField("Grindens bredd", "gww", cm(g.gate.w))}</div>
     <div class="block-label label">Plats och väderstreck</div>
     <p class="hint" style="margin-top:0">Används för solen. Platsen sparas bara på den här enheten.</p>
     <div class="field"><label for="s-lat">Latitud<small>t.ex. 57,83</small></label><input id="s-lat" inputmode="decimal" data-site="lat" value="${String(D.garden.site.lat).replace(".", ",")}"></div>
     <div class="field"><label for="s-lon">Longitud<small>t.ex. 12,38</small></label><input id="s-lon" inputmode="decimal" data-site="lon" value="${String(D.garden.site.lon).replace(".", ",")}"></div>
-    <div class="field"><label for="s-or">Baksidan pekar mot<small>grader, 0 = norr, minus = mot väster</small></label><input id="s-or" inputmode="decimal" data-site="orient" value="${String(D.garden.site.orient).replace(".", ",")}"></div>
+    <div class="field"><label for="s-or">Baksidan pekar mot<small>grader, 0 = norr, 90 = öster</small></label><input id="s-or" inputmode="decimal" data-site="orient" value="${String(D.garden.site.orient).replace(".", ",")}"></div>
     <div class="block-label label">Lägg till</div>
     <div class="chips">
       <button class="chip" data-new="bed">Bädd</button><button class="chip" data-new="stone">Odlingsyta med stenkant</button>
@@ -1429,15 +1541,18 @@ document.addEventListener("click", e => {
   if (d.dismiss) { ui.set(d.dismiss, true); return refreshSide(); }
   if (d.year) { S.year = Number(d.year); sceneBuild(); if (S.mode === "plan") drawPlan(); return refreshSide(); }
   if (d.seasonYear) { S.seasonYear = Number(d.seasonYear); return draw(); }
-  if (d.bed && !("newEntry" in d)) { S.sel = d.bed; if (scene) scene.select(d.bed); if (S.mode === "plan") drawPlan(); refreshSide(); return openSheet({ kind: "bed", id: d.bed }); }
-  if (d.obs) { S.sel = d.obs; if (scene) scene.select(d.obs); if (S.mode === "plan") drawPlan(); refreshSide(); return openSheet({ kind: "obstacle", id: d.obs }); }
+  if (d.bed || d.item || d.obs) { pick(d.bed || d.item || d.obs); return showStage(); }
+  if ("unpick" in d) return pick(null);
+  if (d.openBed) return openSheet({ kind: "bed", id: d.openBed });
+  if (d.addCropFor) return openSheet({ kind: "addcrop", id: d.addCropFor });
+  if (d.openObj) return openSheet({ kind: itemById(d.openObj) ? "item" : "obstacle", id: d.openObj });
+  if (d.foot) { const o = obsById(S.sheet.id); o.foot = d.foot; changed(true); return refreshSheet(); }
   if ("sunToggle" in d) { S.sun = !S.sun; ui.set("sun", S.sun); plan.zoom = 1; plan.cx = plan.cy = null; drawPlan(); return refreshSide(); }
   if ("deleteObs" in d) {
     if (S.armed !== "obs") { S.armed = "obs"; return refreshSheet(); }
     D.garden.obstacles = D.garden.obstacles.filter(o => o.id !== S.sheet.id);
     S.sel = null; closeSheet(); return changed(true);
   }
-  if (d.item) { S.sel = d.item; if (scene) scene.select(d.item); if (S.mode === "plan") drawPlan(); refreshSide(); return openSheet({ kind: "item", id: d.item }); }
   if (d.sheet) return openSheet({ kind: d.sheet });
   if ("close" in d) return closeSheet();
   if ("sheetBack" in d) { const p = D.plantings.find(q => q.id === S.sheet.id); return openSheet({ kind: "bed", id: p ? p.bed : S.sheet.id }); }
@@ -1485,6 +1600,11 @@ document.addEventListener("click", e => {
     D = sketch(); save(); ui.set("sketch-ok", false); S.sel = null; S.year = SKETCH_YEAR; closeSheet(); sceneBuild(); return draw();
   }
 });
+// On a phone the stage scrolls away above the list; picking from the list brings it back so the mark and card show.
+function showStage() {
+  const sc = app.querySelector(".land-scroll");
+  if (sc && innerWidth < 1000 && sc.scrollTop > 0) sc.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
+}
 // Switching 3D, map and editing keeps the stage and only swaps what's around it.
 function transitionStage() {
   const sc = app.querySelector(".land-scroll"), st = sc ? sc.scrollTop : 0;
