@@ -1,0 +1,51 @@
+{
+  "garden": {
+    "w": 12,
+    "d": 8,
+    "sketch": true,
+    "gate": {"side": "S", "at": 10.4, "w": 1},
+    "site": {"lat": 57.7, "lon": 12, "orient": 72},
+    "beds": [
+      {"id": "b1", "name": "Bädd 1", "x": 0.8, "y": 0.8, "w": 4.4, "d": 1.2, "h": 0.25, "finish": "wood", "cover": null, "trellis": null},
+      {"id": "b2", "name": "Bädd 2", "x": 6.2, "y": 0.8, "w": 3.6, "d": 1.2, "h": 0.25, "finish": "wood", "cover": null, "trellis": null},
+      {"id": "b3", "name": "Bädd 3", "x": 0.8, "y": 2.6, "w": 4.4, "d": 1.2, "h": 0.25, "finish": "wood", "cover": null, "trellis": null},
+      {"id": "b4", "name": "Bädd 4", "x": 6.2, "y": 2.6, "w": 3.6, "d": 1.2, "h": 0.25, "finish": "white", "cover": "fleece", "trellis": null},
+      {"id": "b5", "name": "Bädd 5", "x": 0.8, "y": 4.4, "w": 4.4, "d": 1.2, "h": 0.25, "finish": "white", "cover": null, "trellis": null},
+      {"id": "b6", "name": "Ärtbädden", "x": 6.2, "y": 4.4, "w": 2, "d": 1.6, "h": 0.25, "finish": "wood", "cover": null, "trellis": "aframe"},
+      {"id": "b7", "name": "Bädd 7", "x": 8.7, "y": 4.4, "w": 2.6, "d": 1.2, "h": 0.25, "finish": "white", "cover": "hoops", "trellis": null},
+      {"id": "b8", "name": "Rabarbern", "x": 7.3, "y": 6.5, "w": 1.6, "d": 1.2, "h": 0, "finish": "stone", "cover": null, "trellis": null},
+      {"id": "r1", "name": "Rabatten", "x": 0.6, "y": -1.05, "w": 9.2, "d": 0.75, "h": 0, "finish": "stone", "cover": null, "trellis": null}
+    ],
+    "items": [
+      {"id": "i1", "type": "compost", "x": 0.4, "y": 6.6, "w": 2.4, "d": 1.1},
+      {"id": "i2", "type": "obelisk", "x": 7.8, "y": 6.8, "w": 0.6, "d": 0.6, "h": 2.3},
+      {"id": "i3", "type": "stool", "x": 5.4, "y": 6.9, "w": 0.45, "d": 0.35}
+    ],
+    "obstacles": [
+      {"id": "o1", "type": "building", "name": "Byggnaden i väster", "x": -16.3, "y": -14.1, "w": 19, "d": 10.5, "base": 3, "eaves": 5, "ridge": 10},
+      {"id": "o2", "type": "terrace", "name": "Slänten", "x": -40, "y": -45, "w": 62, "d": 43.8, "base": 0, "eaves": 3, "ridge": 3, "ramp": 2.2, "foot": "N"}
+    ]
+  },
+  "plantings": [
+    {"id": "p1", "bed": "b1", "year": 2026, "crop": "lok", "from": 0, "to": 0.55},
+    {"id": "p2", "bed": "b1", "year": 2026, "crop": "sallat", "from": 0.55, "to": 0.8},
+    {"id": "p3", "bed": "b1", "year": 2026, "crop": "mangold", "from": 0.8, "to": 1},
+    {"id": "p4", "bed": "b2", "year": 2026, "crop": "rodbeta", "from": 0, "to": 0.6},
+    {"id": "p5", "bed": "b2", "year": 2026, "crop": "mangold", "from": 0.6, "to": 1},
+    {"id": "p6", "bed": "b3", "year": 2026, "crop": "morot", "from": 0, "to": 0.5},
+    {"id": "p7", "bed": "b3", "year": 2026, "crop": "sallat", "from": 0.5, "to": 1},
+    {"id": "p8", "bed": "b4", "year": 2026, "crop": "broccoli", "from": 0, "to": 0.5},
+    {"id": "p9", "bed": "b4", "year": 2026, "crop": "vitkal", "from": 0.5, "to": 1},
+    {"id": "p10", "bed": "b5", "year": 2026, "crop": "potatis", "from": 0, "to": 1},
+    {"id": "p11", "bed": "b6", "year": 2026, "crop": "sockerart", "from": 0, "to": 0.55},
+    {"id": "p12", "bed": "b6", "year": 2026, "crop": "tomat", "from": 0.55, "to": 1},
+    {"id": "p13", "bed": "b7", "year": 2026, "crop": "squash", "from": 0, "to": 0.45},
+    {"id": "p14", "bed": "b7", "year": 2026, "crop": "gronkal", "from": 0.45, "to": 1},
+    {"id": "p15", "bed": "b8", "year": 2026, "crop": "rabarber", "from": 0, "to": 1},
+    {"id": "p16", "bed": "r1", "year": 2026, "crop": "ringblomma", "from": 0, "to": 0.25},
+    {"id": "p17", "bed": "r1", "year": 2026, "crop": "persilja", "from": 0.25, "to": 0.5},
+    {"id": "p18", "bed": "r1", "year": 2026, "crop": "dill", "from": 0.55, "to": 1}
+  ],
+  "log": [],
+  "done": []
+}
