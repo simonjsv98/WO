@@ -1,0 +1,12 @@
+{
+  "name": "landet",
+  "private": true,
+  "description": "LANDET – planering och koll på odlingen. Appen är index.html; 3D-modulen byggs från build/scene-src.js.",
+  "scripts": {
+    "build": "esbuild build/scene-src.js --bundle --format=esm --minify --outfile=scene.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0",
+    "three": "^0.187.0"
+  }
+}
