@@ -12,6 +12,7 @@ Keep this file current. When the workflow, the structure or a standing preferenc
 - Talk to Simon in Swedish. The app's text is Swedish.
 - Check changes in a phone-width browser (390 px) with Playwright, and on iPad Air sizes (820×1180, 1180×820) when the layout changes.
 - Same look, feel and motion as RECIPES and KNIT (simonjsv98/recipes, simonjsv98/knit): Google Sans, #F3F2EF background, fixed top bar, colour tiles on the start page, a list page with a coloured title and dot, short fades between pages, swipe right to go back, sheets that slide up and down, a fixed button at the bottom, the update button with the circle wipe. The motion code is copied from KNIT; keep them in step.
+- The home screen icon is `build/icon.svg`: quarter circles from the bottom left corner (rows and a rising sun) in ODLA's greens and rust, with a yellow sun in the top right. `apple-touch-icon.png` (180 px) and `odla-icon-1024.png` are rendered from it with Playwright.
 - ODLA's colours: deep green #24412C with pale lime #D4EC9A (dots #8CC152) for LANDET; rust #B4502A with #FFE3D2 for SÄSONG (the colour of the rebar fence); pale sage #DCE7C5 with #24412C for DAGBOK.
 
 ## Structure
