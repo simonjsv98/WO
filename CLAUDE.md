@@ -22,6 +22,15 @@ Keep this file current. When the workflow, the structure or a standing preferenc
 - A planting's dates (sown, planted, first harvest, cleared) decide how big it looks in 3D at the time chosen with the slider; without dates the crop's usual months are used.
 - Crop rotation (`ROT_GROUPS`, `FAM_GROUP`): potatis & tomat → ärtväxter → kål & gurkväxter → rot, lök & blad. A bed's suggestion follows from what took most of it the year before.
 
+## Sun
+
+- `sunPos` (the SunCalc formulas) gives the sun's height and compass direction; `momentOf` turns a point in the season and a Swedish clock time (with summer time) into a timestamp; `sunDir` turns that into the garden's own axes using `garden.site.orient`, the compass bearing the back of the garden faces (−18: the garden runs parallel with the barn, which is turned about 18° from north towards west).
+- `garden.site` defaults to a general position (57,7 N, 12,0 E). Simon's exact position is typed in the app and kept only on the device; never put it in the repo.
+- `garden.obstacles` cast the shade: buildings (`base` = the ground they stand on above the garden, `eaves`, `ridge`, gable roof along the longer side) and higher ground (`terrace`, sloping up from its east edge over `ramp` metres). `shaded()` casts a ray from a point towards the sun; `sunHours()` samples each bed every 40 cm, every ten minutes from sunrise to sunset, and splits the hours before and after the sun passes south. Results are cached until the garden changes.
+- The default obstacles are read off a satellite image: the barn about 11 × 19 m, 10 m to the ridge, on ground 3 m above the garden, its east wall about 5 m west of the fence; the bank between them 4 m wide. These are guesses until Simon measures. The barn is called "Byggnaden i väster" in the app, not by Simon's name for it, which is part of the password.
+- `SUN_NEED` is the hours of direct sun each crop wants; a bed warns when it gets less in July.
+- In 3D the sun follows the date and the clock slider; the map's "Sol per bädd" colours the beds by hours of sun for the chosen month.
+
 ## The sketch
 
 All measurements in `sketch()` are guesses from five photos from summer 2026: a fenced plot (about 12 × 8 m) of rebar mesh on wooden posts, a wooden gate at the east end of the front, raised beds (wood and white-painted), a pea bed with a bamboo A-frame and tomatoes, hooped fleece tunnels, a red obelisk with rhubarb, a compost of red boards at the back, a white stool, and a stone-edged border with dill outside the front fence. Replace them with Simon's measurements as he gives them.

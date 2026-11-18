@@ -6,7 +6,7 @@ import {
   BoxGeometry, PlaneGeometry, CylinderGeometry, ConeGeometry, IcosahedronGeometry, DodecahedronGeometry, TorusGeometry,
   SphereGeometry, MeshStandardMaterial, MeshBasicMaterial, LineBasicMaterial, LineSegments, BufferGeometry, Float32BufferAttribute,
   InstancedMesh, Object3D, Raycaster, Vector2, Vector3, CanvasTexture, RepeatWrapping, SRGBColorSpace, PCFSoftShadowMap,
-  ACESFilmicToneMapping, DoubleSide, MathUtils
+  ACESFilmicToneMapping, DoubleSide, MathUtils, Shape, ExtrudeGeometry
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
@@ -69,7 +69,8 @@ export function createScene(el, { onPick } = {}) {
   scene.fog = new Fog(C.sky, 28, 70);
   const camera = new PerspectiveCamera(38, 1, .1, 200);
 
-  scene.add(new HemisphereLight(0xf4f8ff, 0x6a7a45, 1.25));
+  const hemi = new HemisphereLight(0xf4f8ff, 0x6a7a45, 1.25);
+  scene.add(hemi);
   const sun = new DirectionalLight(0xfff3dc, 2.1);
   sun.position.set(-8, 14, 9);
   sun.castShadow = true;
@@ -100,6 +101,7 @@ export function createScene(el, { onPick } = {}) {
   let beds = new Map();      // bed id -> { group, walls[], plants: Group, len, axis }
   let pickables = [];
   let size = { w: 10, d: 8 };
+  let extra = { w: 0, d: 0, cx: 0, cz: 0 };   // how far buildings that shade the garden reach outside it
   let selected = null;
   let firstFrame = true;
 
@@ -375,6 +377,47 @@ export function createScene(el, { onPick } = {}) {
     beds.set(b.id, { group: g, walls: [], wallMat: stones.material, plants, data: b, h: 0 });
   }
 
+  /* ---------- What shades the garden: buildings and higher ground ----------
+     Each obstacle stands on its own ground level (base, metres above the garden's ground). Buildings have a gable roof
+     with the ridge along their longer side. */
+  function obstacle(o) {
+    const g = new Group();
+    const cx = X(o.x + o.w / 2), cz = Z(o.y + o.d / 2);
+    if (o.type === "terrace") {
+      // Higher ground: flat on top, sloping down to its east edge (towards the garden) over ramp metres.
+      const h = Math.max(.05, o.ridge || 1), ramp = Math.min(o.w, Math.max(.01, o.ramp || .01));
+      const sh = new Shape();
+      sh.moveTo(o.w / 2, 0); sh.lineTo(o.w / 2 - ramp, h); sh.lineTo(-o.w / 2, h); sh.lineTo(-o.w / 2, 0); sh.closePath();
+      const geo = new ExtrudeGeometry(sh, { depth: o.d, bevelEnabled: false });
+      geo.translate(0, 0, -o.d / 2);
+      const m = new Mesh(geo, new MeshStandardMaterial({ color: 0x9fb87a, map: grassTex, roughness: .95 }));
+      m.position.set(cx, o.base || 0, cz);
+      m.receiveShadow = m.castShadow = true;
+      g.add(m);
+    } else {
+      const base = o.base || 0, e = o.eaves || 4, r = Math.max(e, o.ridge || e);
+      const walls = mat(0x8E2B20, { roughness: .85 }), roof = mat(0x2C2C2E, { roughness: .7 });
+      // The ground it stands on, if it is higher than the garden.
+      if (base > .01) {
+        const plinth = box(o.w + 1, base, o.d + 1, mat(0x6f5a3f, { roughness: 1 }), cx, base / 2, cz);
+        g.add(plinth);
+      }
+      g.add(box(o.w, e, o.d, walls, cx, base + e / 2, cz));
+      const alongZ = o.d >= o.w, span = (alongZ ? o.w : o.d) + .5, len = (alongZ ? o.d : o.w) + .5;
+      const sh = new Shape();
+      sh.moveTo(-span / 2, 0); sh.lineTo(span / 2, 0); sh.lineTo(0, r - e + .15); sh.closePath();
+      const geo = new ExtrudeGeometry(sh, { depth: len, bevelEnabled: false });
+      geo.translate(0, 0, -len / 2);
+      const rm = new Mesh(geo, roof);
+      rm.position.set(cx, base + e - .05, cz);
+      if (!alongZ) rm.rotation.y = Math.PI / 2;
+      rm.castShadow = rm.receiveShadow = true;
+      g.add(rm);
+    }
+    g.traverse(m => { if (m.isMesh) { m.userData.obsId = o.id; pickables.push(m); } });
+    world.add(g);
+  }
+
   /* ---------- Plants ---------- */
   function rand(i) { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
   function plantsFor(entry, list) {
@@ -423,13 +466,13 @@ export function createScene(el, { onPick } = {}) {
 
   /* ---------- Camera ---------- */
   function frame(animate) {
-    const span = Math.max(size.w, size.d * 1.2);
+    const span = Math.max(size.w + extra.w, (size.d + extra.d) * 1.2);
     const aspect = camera.aspect || 1;
     const dist = span * (aspect < 1 ? 1.45 : aspect < 1.4 ? 1.15 : .95) + 2;
-    const to = new Vector3(-dist * .42, dist * .62, dist * .78);
-    controls.target.set(0, 0, -.3);
+    const to = new Vector3(dist * .38 + extra.cx, dist * .62, dist * .8 + extra.cz);
+    controls.target.set(extra.cx, 0, extra.cz - .3);
     if (animate) {
-      const from = to.clone().multiplyScalar(1.5).add(new Vector3(-dist * .6, dist * .3, 0));
+      const from = to.clone().multiplyScalar(1.5).add(new Vector3(dist * .6, dist * .3, 0));
       camera.position.copy(from);
       const start = performance.now(), ms = 1300;
       const step = now => {
@@ -486,7 +529,7 @@ export function createScene(el, { onPick } = {}) {
     ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(ptr, camera);
     const hit = ray.intersectObjects(pickables, false)[0];
-    const id = hit ? (hit.object.userData.bedId || hit.object.userData.itemId) : null;
+    const id = hit ? (hit.object.userData.bedId || hit.object.userData.itemId || hit.object.userData.obsId) : null;
     onPick && onPick(id || null);
   });
 
@@ -540,13 +583,35 @@ export function createScene(el, { onPick } = {}) {
       fence(garden);
       for (const b of garden.beds) bed(b);
       for (const it of garden.items || []) item(it);
-      const half = Math.max(garden.w, garden.d) / 2 + 3;
-      Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 1, far: 60 });
+      for (const o of garden.obstacles || []) obstacle(o);
+      // Frame the garden together with the buildings next to it (at most 8 m of them).
+      let x0 = 0, x1 = garden.w, y0 = 0, y1 = garden.d;
+      for (const o of (garden.obstacles || []).filter(o => o.type !== "terrace")) { x0 = Math.min(x0, Math.max(-8, o.x)); x1 = Math.max(x1, Math.min(garden.w + 8, o.x + o.w)); y0 = Math.min(y0, Math.max(-8, o.y)); y1 = Math.max(y1, Math.min(garden.d + 8, o.y + o.d)); }
+      extra = { w: x1 - x0 - garden.w, d: y1 - y0 - garden.d, cx: (x0 + x1) / 2 - garden.w / 2, cz: garden.d / 2 - (y0 + y1) / 2 };
+      // Shadows cover the garden and whatever casts shade on it.
+      let half = Math.max(garden.w, garden.d) / 2 + 3;
+      for (const o of (garden.obstacles || []).filter(o => o.type !== "terrace")) half = Math.max(half, Math.abs(X(o.x)) + 2, Math.abs(X(o.x + o.w)) + 2, Math.abs(Z(o.y)) + 2, Math.abs(Z(o.y + o.d)) + 2);
+      Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 1, far: 140 });
       sun.shadow.camera.updateProjectionMatrix();
       for (const e of beds.values()) e.last = [];
       setPlants(plants, false);
       if (selected) highlight(selected);
       if (firstFrame) { resize(); frame(!matchMedia("(prefers-reduced-motion: reduce)").matches); firstFrame = false; }
+      render();
+    },
+    // The sun from the app: x and y are the horizontal direction to the sun in the garden's own axes, alt its height (radians).
+    sun(dir) {
+      const alt = dir.alt, up = Math.max(alt, -.2);
+      const c = Math.cos(up);
+      sun.target.position.set(0, 0, 0);
+      sun.position.set(dir.x * c * 60, Math.sin(up) * 60, -dir.y * c * 60);
+      const day = Math.max(0, Math.min(1, alt / .35));          // full light from 20° up
+      const dawn = Math.max(0, Math.min(1, (alt + .1) / .2));   // twilight
+      sun.intensity = alt > 0 ? .5 + 2 * day : 0;
+      sun.color.setHSL(.09, .55 + .35 * (1 - day), .62 + .25 * day);
+      hemi.intensity = .25 + .75 * dawn;
+      const sky = new Color(0x1c2638).lerp(new Color(0xf2b98a), Math.min(1, dawn * 1.6)).lerp(new Color(C.sky), day);
+      scene.background = sky; scene.fog.color = sky;
       render();
     },
     plants(plants) { setPlants(plants, !matchMedia("(prefers-reduced-motion: reduce)").matches); },

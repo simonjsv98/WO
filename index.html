@@ -114,6 +114,16 @@ input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; backgro
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: var(--cover); border: 3px solid var(--surface); box-shadow: 0 1px 4px rgba(0, 0, 0, .2); }
 input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--cover); border: 3px solid var(--surface); }
 .months { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); letter-spacing: .04em; padding: 0 4px; }
+.clock-range { margin-top: 10px; }
+.clock-range::-webkit-slider-runnable-track { background: linear-gradient(to right, #2B3550, #F2B98A 18%, #F2C94C 50%, #F2B98A 82%, #2B3550) !important; }
+.sun-legend { margin-top: 14px; font-size: .88rem; color: var(--muted); }
+.sun-scale { height: 10px; border-radius: 5px; margin: 6px 0 2px; background: linear-gradient(to right, rgb(127,143,166) 0%, rgb(201,192,138) 28%, rgb(242,201,76) 50%, rgb(242,154,59) 71%, rgb(229,98,43) 100%); }
+.sun-bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; height: 150px; margin-top: 14px; }
+.sun-bars > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 0; }
+.sun-bars .v { font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sun-bars .bar-out { flex: none; width: 100%; max-width: 38px; margin-top: auto; border-radius: 7px; background: #E7E5E0; display: flex; align-items: flex-end; overflow: hidden; }
+.sun-bars .bar-out i { display: block; width: 100%; border-radius: 7px; }
+.sun-bars .m { font-size: .75rem; color: var(--muted); }
 .warn { margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: #FBF1C9; font-size: .98rem; }
 .warn b { font-weight: 600; }
 .warn .x { display: inline-block; margin-top: 6px; color: var(--accent); font-weight: 500; min-height: 32px; }
@@ -332,6 +342,8 @@ const CROPS = [
   { id: "tagetes", name: "Tagetes", fam: "Blommor", inside: [4, 4.75], out: [6, 6.25], how: "plantera", harvest: [7, 10], shape: "bush", color: "#4F8A3A", size: .7, spacing: .25, fruit: "#F2B230", bloom: true }
 ];
 const CROP = Object.fromEntries(CROPS.map(c => [c.id, c]));
+/* Hours of direct sun a crop wants on a midsummer day to do well. Below that it grows, but slower and with less harvest. */
+const SUN_NEED = { tomat: 7, potatis: 6, lok: 6, purjolok: 6, salladslok: 5, morot: 5, palsternacka: 5, dill: 5, persilja: 4, rodbeta: 5, mangold: 4, spenat: 3, sallat: 4, ruccola: 3, radisa: 4, gronkal: 5, vitkal: 6, broccoli: 5, sockerart: 5, bondbona: 5, brytbona: 6, squash: 6, gurka: 7, pumpa: 7, majs: 7, jordgubbe: 6, rabarber: 4, ringblomma: 6, tagetes: 6 };
 const FAM_ORDER = ["Nattskatt", "Ärtväxter", "Korsblommiga", "Gurkväxter", "Lök", "Flockblommiga", "Mållväxter", "Korgblommiga", "Gräs", "Blommor", "Perenn"];
 
 /* Crop rotation (växtföljd) in four groups. Each year a bed moves one step: potatis & tomat → ärtväxter → kål → rot, lök & blad → potatis & tomat.
@@ -368,6 +380,8 @@ function sketch() {
     garden: {
       w: 12, d: 8, sketch: true,
       gate: { side: "S", at: 10.4, w: 1 },
+      site: defaultSite(),
+      obstacles: defaultObstacles(),
       beds: [
         bed("b1", "Bädd 1", .8, .8, 4.4, 1.2),
         bed("b2", "Bädd 2", 6.2, .8, 3.6, 1.2),
@@ -400,6 +414,19 @@ function sketch() {
     done: []
   };
 }
+/* Where the garden is and what shades it. The position here is general (the Göteborg area); the exact one is typed in
+   the app and only kept on the device. For the sun a few kilometres make no difference.
+   orient: the compass bearing the back of the garden (+y, up on the map) faces, in degrees. The garden runs parallel
+   with the barn, which on the satellite image is turned about 18° from north towards west. */
+function defaultSite() { return { lat: 57.7, lon: 12.0, orient: -18 }; }
+/* The building (a barn) west of the garden (about 10 m to the ridge, on ground 3 m higher), and the bank between them.
+   Sizes are read off a satellite image and should be checked. Metres in the garden's own coordinates. */
+function defaultObstacles() {
+  return [
+    { id: "o1", type: "building", name: "Byggnaden i väster", x: -16, y: -1, w: 11, d: 19, base: 3, eaves: 5, ridge: 10 },
+    { id: "o2", type: "terrace", name: "Slänten", x: -40, y: -20, w: 39, d: 50, base: 0, eaves: 3, ridge: 3, ramp: 4 }
+  ];
+}
 const ITEM_NAMES = { compost: "Kompost", obelisk: "Obelisk", stool: "Pall", trellis: "Spaljé" };
 const FINISH = { wood: "trälåda", white: "vit låda", stone: "kantad med sten" };
 const COVER = { null: "Ingen", hoops: "Bågar", fleece: "Fiberduk", net: "Nät" };
@@ -411,6 +438,8 @@ let D;
 try { D = JSON.parse(localStorage.getItem(KEY)); } catch (e) { D = null; }
 if (!D || !D.garden) D = sketch();
 D.log ||= []; D.done ||= []; D.plantings ||= [];
+D.garden.site ||= defaultSite();
+D.garden.obstacles ||= defaultObstacles();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} };
 const ui = {
   get(k, d) { try { const v = localStorage.getItem("odla-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -430,6 +459,8 @@ const S = {
   // The 3D view shows a point in the season. Outside the season it shows high summer.
   month: nowMonth() >= 3.5 && nowMonth() <= 10.5 ? Math.round(nowMonth() * 4) / 4 : 7.5,
   seasonYear: nowMonth() >= 10 ? THIS_YEAR + 1 : THIS_YEAR,
+  hour: 15,              // the time of day in 3D, Swedish time
+  sun: ui.get("sun", false),   // the map shows hours of sun per bed
   sheet: null,
   armed: null
 };
@@ -447,6 +478,8 @@ const area = b => b.w * b.d;
 const longSide = b => Math.max(b.w, b.d);
 const bedById = id => D.garden.beds.find(b => b.id === id);
 const itemById = id => (D.garden.items || []).find(i => i.id === id);
+const obsById = id => (D.garden.obstacles || []).find(o => o.id === id);
+const objById = id => bedById(id) || itemById(id) || obsById(id);
 const plantingsIn = (bed, year) => D.plantings.filter(p => p.bed === bed && p.year === year).sort((a, b) => a.from - b.from);
 const years = () => [...new Set([...D.plantings.map(p => p.year), THIS_YEAR, THIS_YEAR + 1])].sort();
 // "2026-05-12" → 5.35
@@ -495,6 +528,104 @@ function rotation(bedId, year) {
   const main = Number(Object.entries(share).sort((a, b) => b[1] - a[1])[0][0]);
   return { last: [...new Set(last.map(c => c.name.toLowerCase()))], lastGroup: main, next: (main + 1) % 4, fams: new Set(last.map(c => c.fam)) };
 }
+
+/* ---------- The sun ----------
+   Position from the usual astronomical formulas (as in SunCalc): accurate to well under a degree, plenty for shade. */
+const RAD = Math.PI / 180;
+function sunPos(ms, lat, lon) {
+  const d = ms / 86400000 - .5 + 2440588 - 2451545;
+  const M = RAD * (357.5291 + .98560028 * d);
+  const C = RAD * (1.9148 * Math.sin(M) + .02 * Math.sin(2 * M) + .0003 * Math.sin(3 * M));
+  const L = M + C + RAD * 102.9372 + Math.PI, e = RAD * 23.4397;
+  const dec = Math.asin(Math.sin(e) * Math.sin(L)), ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
+  const phi = RAD * lat, H = RAD * (280.16 + 360.9856235 * d) + RAD * lon - ra;
+  const alt = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+  const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)) + Math.PI;   // from north, clockwise
+  return { alt, az };
+}
+// Swedish time: summer time from the last Sunday in March to the last Sunday in October.
+function swedenOffset(y, mo, d) {
+  const lastSunday = m => { const t = new Date(Date.UTC(y, m + 1, 0)); return t.getUTCDate() - t.getUTCDay(); };
+  const md = mo * 100 + d;
+  return md >= 200 + lastSunday(2) && md < 900 + lastSunday(9) ? 2 : 1;
+}
+// A point in the season (month as a decimal, as on the slider) and a Swedish clock time, as a UTC timestamp.
+function momentOf(year, mf, hour) {
+  const mo = Math.floor(mf) - 1, d = Math.min(28, Math.round((mf - Math.floor(mf)) * 30) + 1);
+  return Date.UTC(year, mo, d) + (hour - swedenOffset(year, mo, d)) * 3600000;
+}
+// The direction to the sun in the garden's own axes (x towards the east fence, y towards the back), and its height.
+function sunDir(ms) {
+  const site = D.garden.site, p = sunPos(ms, site.lat, site.lon), a = p.az - site.orient * RAD;
+  return { x: Math.sin(a), y: Math.cos(a), alt: p.alt, az: p.az };
+}
+const COMPASS = ["norr", "nordost", "öster", "sydost", "söder", "sydväst", "väster", "nordväst"];
+const compass = az => COMPASS[Math.round(az / RAD / 45) % 8];
+
+// Height of an obstacle's top at a point: flat for higher ground, a gable roof along the longer side for a building.
+function topAt(o, x, y) {
+  // Higher ground slopes up from its east edge (towards the garden) over ramp metres.
+  if (o.type === "terrace") return (o.base || 0) + (o.ridge || 0) * Math.max(0, Math.min(1, (o.x + o.w - x) / (o.ramp || .01)));
+  const alongY = o.d >= o.w, half = (alongY ? o.w : o.d) / 2;
+  const u = alongY ? Math.abs(x - (o.x + o.w / 2)) : Math.abs(y - (o.y + o.d / 2));
+  return (o.base || 0) + o.eaves + (Math.max(o.eaves, o.ridge) - o.eaves) * Math.max(0, 1 - u / half);
+}
+// Is a point (metres; z above the garden's ground) in shade when the sun is in direction s?
+function shaded(px, py, pz, s) {
+  const tz = Math.tan(s.alt);
+  for (const o of D.garden.obstacles || []) {
+    let t0 = 0, t1 = Infinity;
+    for (const [p, v, a, b] of [[px, s.x, o.x, o.x + o.w], [py, s.y, o.y, o.y + o.d]]) {
+      if (Math.abs(v) < 1e-9) { if (p < a || p > b) { t0 = 1; t1 = 0; } continue; }
+      let u = (a - p) / v, w = (b - p) / v;
+      if (u > w) [u, w] = [w, u];
+      t0 = Math.max(t0, u); t1 = Math.min(t1, w);
+    }
+    if (t0 > t1) continue;
+    const top = (o.base || 0) + Math.max(o.eaves || 0, o.ridge || 0);
+    if (pz + t0 * tz >= top) continue;   // the ray climbs, so once above the top it stays clear
+    for (let i = 0; i <= 10; i++) {
+      const t = t0 + (t1 - t0) * i / 10;
+      if (pz + t * tz < topAt(o, px + s.x * t, py + s.y * t)) return true;
+    }
+  }
+  return false;
+}
+/* Hours of direct sun on a bed on one day: the share of the bed in sun, every ten minutes, from sunrise to sunset.
+   am and pm split at the moment the sun passes south. Kept until the garden changes. */
+let sunCache = new Map();
+function sunHours(b, year, mf) {
+  const key = `${b.id}|${year}|${Math.round(mf * 4) / 4}`;
+  if (sunCache.has(key)) return sunCache.get(key);
+  const pts = [], step = .4, inset = Math.min(.15, b.w / 4, b.d / 4);
+  const nx = Math.max(1, Math.round((b.w - 2 * inset) / step)), ny = Math.max(1, Math.round((b.d - 2 * inset) / step));
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) pts.push([b.x + inset + (b.w - 2 * inset) * (i + .5) / nx, b.y + inset + (b.d - 2 * inset) * (j + .5) / ny]);
+  const z = (b.h || 0) + .05;
+  let total = 0, am = 0, pm = 0, day = 0;
+  for (let h = 2; h < 23.99; h += 1 / 6) {
+    const s = sunDir(momentOf(year, mf, h));
+    if (s.alt < .5 * RAD) continue;
+    day += 1 / 6;
+    let lit = 0;
+    for (const [x, y] of pts) if (!shaded(x, y, z, s)) lit++;
+    const hrs = lit / pts.length / 6;
+    total += hrs;
+    if (s.az < Math.PI) am += hrs; else pm += hrs;
+  }
+  const r = { total, am, pm, day };
+  sunCache.set(key, r);
+  return r;
+}
+// Colour for hours of sun: blue-grey in shade, yellow in half shade, orange in full sun.
+const SUN_STOPS = [[0, [127, 143, 166]], [4, [201, 192, 138]], [7, [242, 201, 76]], [10, [242, 154, 59]], [14, [229, 98, 43]]];
+function sunColor(h) {
+  let i = 0;
+  while (i < SUN_STOPS.length - 2 && h > SUN_STOPS[i + 1][0]) i++;
+  const [h0, c0] = SUN_STOPS[i], [h1, c1] = SUN_STOPS[i + 1], t = Math.max(0, Math.min(1, (h - h0) / (h1 - h0)));
+  return `rgb(${c0.map((v, k) => Math.round(v + (c1[k] - v) * t)).join(",")})`;
+}
+const hrs = v => `${m1(v)} h`;
+const clock = h => `${String(Math.floor(h)).padStart(2, "0")}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
 
 /* ---------- Illustrations for the tiles ---------- */
 const ART = {
@@ -578,24 +709,36 @@ function landSide() {
   return `<div class="wrap">
     ${notice}
     <div class="chips" role="group" aria-label="År">${ys.map(y => `<button class="chip small" data-year="${y}" aria-pressed="${y === S.year}">${y}</button>`).join("")}</div>
-    ${S.mode === "3d" ? `<div class="when">
-      <div class="when-top"><b id="when-label">${dayLabel(S.month)}</b><span id="when-sub">${whenSub()}</span></div>
+    ${S.mode === "plan" && !S.edit ? `<div class="chips"><button class="chip small" data-sun-toggle aria-pressed="${S.sun}">☀ Sol per bädd</button></div>` : ""}
+    ${S.mode === "3d" || (S.sun && !S.edit) ? `<div class="when">
+      <div class="when-top"><b id="when-label">${dayLabel(S.month)}${S.mode === "3d" ? ` · ${clock(S.hour)}` : ""}</b><span id="when-sub">${whenSub()}</span></div>
       <input type="range" min="3.5" max="10.75" step=".25" value="${S.month}" data-month aria-label="Tid på säsongen">
       <div class="months"><span>apr</span><span>maj</span><span>jun</span><span>jul</span><span>aug</span><span>sep</span><span>okt</span></div>
-    </div>` : S.edit ? `<div class="note-ok">Dra en bädd för att flytta den, och den runda knoppen i hörnet för att ändra storlek. Tryck på en bädd för att skriva in exakta mått. Två fingrar zoomar.</div>` : ""}
+      ${S.mode === "3d" ? `<input type="range" min="4" max="22.5" step=".25" value="${S.hour}" data-hour aria-label="Klockan" class="clock-range">
+      <div class="months"><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span></div>` : ""}
+    </div>` : ""}
+    ${S.mode === "plan" && S.sun && !S.edit ? `<div class="sun-legend"><span>Direkt sol en dag i ${MONTHS[Math.floor(S.month) - 1]}</span><div class="sun-scale"></div><div class="months"><span>0 h</span><span>4</span><span>7</span><span>10</span><span>14 h</span></div></div>` : ""}
+    ${S.edit ? `<div class="note-ok">Dra en bädd för att flytta den, och den runda knoppen i hörnet för att ändra storlek. Tryck på en bädd för att skriva in exakta mått. Två fingrar zoomar.</div>` : ""}
     <div class="block-label label"><span>Bäddar ${S.year}</span><span>${m1(list.reduce((s, b) => s + area(b), 0))} m²</span></div>
     <ul class="beds">${list.map(b => {
       const ps = plantingsIn(b.id, S.year);
       return `<li><button class="bed-row${S.sel === b.id ? " on" : ""}" data-bed="${b.id}">
         <span class="name">${esc(b.name)}</span><span class="size">${cm(b.w)} × ${cm(b.d)} cm</span>
+        ${S.sun && S.mode === "plan" ? `<span class="crops"><span><i style="background:${sunColor(sunHours(b, S.year, S.month).total)}"></i>${hrs(sunHours(b, S.year, S.month).total)} sol i ${MON3[Math.floor(S.month) - 1]}</span></span>` : ""}
         <span class="crops">${ps.length ? ps.map(p => `<span><i style="background:${CROP[p.crop]?.color}"></i>${esc(CROP[p.crop]?.name)}</span>`).join("") : `<span>Inget planerat</span>`}</span>
       </button></li>`;
     }).join("")}</ul>
     ${(D.garden.items || []).length ? `<div class="block-label label">Övrigt i landet</div><ul class="beds">${D.garden.items.map(i => `<li><button class="bed-row${S.sel === i.id ? " on" : ""}" data-item="${i.id}"><span class="name">${ITEM_NAMES[i.type] || i.type}</span><span class="size">${cm(i.w)} × ${cm(i.d)} cm</span></button></li>`).join("")}</ul>` : ""}
+    ${(D.garden.obstacles || []).length ? `<div class="block-label label">Skuggar landet</div><ul class="beds">${D.garden.obstacles.map(o => `<li><button class="bed-row${S.sel === o.id ? " on" : ""}" data-obs="${o.id}"><span class="name">${esc(o.name)}</span><span class="size">${m1(o.type === "terrace" ? o.ridge : o.ridge)} m ${o.type === "terrace" ? "högre" : "hög"}</span></button></li>`).join("")}</ul>` : ""}
     <p class="hint" style="margin-top:16px">Staketet: ${m1(D.garden.w)} × ${m1(D.garden.d)} m, grinden på ${ROMAN_DIR[D.garden.gate.side]}.</p>
   </div>`;
 }
 function whenSub() {
+  if (S.mode === "3d") {
+    const s = sunDir(momentOf(S.year, S.month, S.hour));
+    return s.alt > 0 ? `solen ${Math.round(s.alt / RAD)}° i ${compass(s.az)}` : "solen är nere";
+  }
+  if (S.sun) return "soltimmar per bädd";
   const growing = D.plantings.filter(p => p.year === S.year && growth(p, S.month) > 0).length;
   return growing ? `${growing} ${growing === 1 ? "gröda" : "grödor"} i jorden` : "inget i jorden";
 }
@@ -676,7 +819,9 @@ const plan = { zoom: 1, cx: null, cy: null };
 function planBounds() {
   const g = D.garden;
   let x0 = 0, y0 = 0, x1 = g.w, y1 = g.d;
-  for (const o of [...g.beds, ...(g.items || [])]) { x0 = Math.min(x0, o.x); y0 = Math.min(y0, o.y); x1 = Math.max(x1, o.x + o.w); y1 = Math.max(y1, o.y + o.d); }
+  for (const o of [...g.beds, ...(g.items || []), ...(S.sun || S.edit ? (g.obstacles || []).filter(o => o.type !== "terrace") : [])]) { x0 = Math.min(x0, o.x); y0 = Math.min(y0, o.y); x1 = Math.max(x1, o.x + o.w); y1 = Math.max(y1, o.y + o.d); }
+  // Things that shade the garden can be large; the map shows at most 6 m of them outside the fence (pan to see more).
+  x0 = Math.max(x0, -6); y0 = Math.max(y0, -6); x1 = Math.min(x1, g.w + 6); y1 = Math.min(y1, g.d + 6);
   return { x0: x0 - .9, y0: y0 - .6, x1: x1 + .6, y1: y1 + 1.1 };
 }
 function drawPlan() {
@@ -735,8 +880,17 @@ function drawPlan() {
     s += `<g data-obj="${b.id}" class="bed">`;
     s += `<rect x="${x}" y="${y}" width="${b.w}" height="${b.d}" rx="${stone ? .25 : .03}" fill="${stone ? "#5A4636" : frame}" ${stone ? `stroke="${frame}" stroke-width=".09" stroke-dasharray=".14 .08"` : `stroke="${b.finish === "white" ? "#C9C4BA" : "#A9824F"}" stroke-width="${px}"`}/>`;
     if (!stone) s += `<rect x="${x + t}" y="${y + t}" width="${b.w - 2 * t}" height="${b.d - 2 * t}" fill="#4A382B"/>`;
+    // In sun mode the bed shows its hours of sun instead of its crops.
+    if (S.sun && !S.edit) {
+      const h = sunHours(b, S.year, S.month).total;
+      s += `<rect x="${x + (stone ? 0 : t)}" y="${y + (stone ? 0 : t)}" width="${b.w - (stone ? 0 : 2 * t)}" height="${b.d - (stone ? 0 : 2 * t)}" rx="${stone ? .25 : .03}" fill="${sunColor(h)}"/>`;
+      // Name and hours inside the bed, so nothing overlaps when the map shows more than the garden.
+      const two = b.d > fs * 2.6 && b.w > b.name.length * fs * .42;
+      if (two) s += `<text x="${x + b.w / 2}" y="${y + b.d / 2 - fs * .25}" font-size="${fs * .78}" fill="#1B1A18" text-anchor="middle" opacity=".75">${esc(b.name)}</text>`;
+      s += `<text x="${x + b.w / 2}" y="${y + b.d / 2 + (two ? fs * .85 : fs * .36)}" font-size="${fs * 1.05}" fill="#1B1A18" text-anchor="middle" font-weight="600">${m1(h)} h</text>`;
+    }
     // Crops as stripes along the bed's length
-    for (const p of plantingsIn(b.id, S.year)) {
+    for (const p of S.sun && !S.edit ? [] : plantingsIn(b.id, S.year)) {
       const c = CROP[p.crop]; if (!c) continue;
       const a = p.from * (L - 2 * t) + t, e = p.to * (L - 2 * t) + t;
       const rx = along ? x + a : x + t, ry = along ? y + t : Y(b.y + e), rw = along ? e - a : b.w - 2 * t, rh = along ? b.d - 2 * t : e - a;
@@ -745,14 +899,29 @@ function drawPlan() {
       if (rw > tw && rh > fs * 1.3) s += `<text x="${rx + rw / 2}" y="${ry + rh / 2 + fs * .33}" font-size="${fs * .86}" fill="#fff" text-anchor="middle" font-weight="500">${esc(c.name)}</text>`;
       else if (rh > tw && rw > fs * 1.2) s += `<text transform="translate(${rx + rw / 2 + fs * .3} ${ry + rh / 2}) rotate(-90)" font-size="${fs * .86}" fill="#fff" text-anchor="middle" font-weight="500">${esc(c.name)}</text>`;
     }
-    if (b.cover) s += `<rect x="${x + t}" y="${y + t}" width="${b.w - 2 * t}" height="${b.d - 2 * t}" fill="${b.cover === "fleece" ? "rgba(255,255,255,.55)" : "url(#hoops)"}"/>`;
+    if (b.cover && !(S.sun && !S.edit)) s += `<rect x="${x + t}" y="${y + t}" width="${b.w - 2 * t}" height="${b.d - 2 * t}" fill="${b.cover === "fleece" ? "rgba(255,255,255,.55)" : "url(#hoops)"}"/>`;
     if (b.trellis) s += `<line x1="${along ? x + L * .1 : x + b.w / 2}" y1="${along ? y + b.d / 2 : y + b.d * .1}" x2="${along ? x + L * .9 : x + b.w / 2}" y2="${along ? y + b.d / 2 : y + b.d * .9}" stroke="#E2CC8E" stroke-width=".06"/>`;
     if (sel) s += `<rect x="${x - .06}" y="${y - .06}" width="${b.w + .12}" height="${b.d + .12}" rx=".08" fill="none" stroke="#24412C" stroke-width="${px * 3}"/>`;
     // Name above the bed (or inside when there's room), size below
-    s += `<text x="${x + b.w / 2}" y="${y - fs * .45}" font-size="${fs}" fill="#24412C" text-anchor="middle" font-weight="600">${esc(b.name)}</text>`;
+    if (!(S.sun && !S.edit)) s += `<text x="${x + b.w / 2}" y="${y - fs * .45}" font-size="${fs}" fill="#24412C" text-anchor="middle" font-weight="600">${esc(b.name)}</text>`;
     if (S.edit || sel) s += `<text x="${x + b.w / 2}" y="${y + b.d + fs * 1.05}" font-size="${fs * .82}" fill="#5B574F" text-anchor="middle">${cm(b.w)} × ${cm(b.d)}</text>`;
     s += `</g>`;
     if (S.edit && sel) s += `<circle class="handle" data-handle="${b.id}" cx="${x + b.w}" cy="${y}" r="${Math.max(.16, px * 13)}" fill="#24412C" stroke="#fff" stroke-width="${px * 2.5}"/>`;
+  }
+  // What shades the garden: the building with its ridge, and the edge of the higher ground
+  if (S.sun || S.edit) for (const o of g.obstacles || []) {
+    const sel = S.sel === o.id, x = o.x, y = Y(o.y + o.d);
+    if (o.type === "terrace") {
+      const ex = o.x + o.w;   // the edge facing the garden
+      s += `<g data-obj="${o.id}" class="bed"><line x1="${ex}" y1="${Y(Math.max(o.y, -2))}" x2="${ex}" y2="${Y(Math.min(o.y + o.d, g.d + 2))}" stroke="#6F5A3F" stroke-width="${sel ? .12 : .07}" stroke-dasharray=".25 .12"/>`;
+      s += `<text transform="translate(${ex - fs * .5} ${Y(g.d / 2)}) rotate(-90)" font-size="${fs * .85}" text-anchor="middle" fill="#6F5A3F">${esc(o.name)} +${m1(o.ridge)} m</text></g>`;
+      continue;
+    }
+    const alongY = o.d >= o.w;
+    s += `<g data-obj="${o.id}" class="bed"><rect x="${x}" y="${y}" width="${o.w}" height="${o.d}" fill="#3A3A3C" ${sel ? `stroke="#24412C" stroke-width="${px * 3}"` : ""}/>`;
+    s += alongY ? `<line x1="${x + o.w / 2}" y1="${y}" x2="${x + o.w / 2}" y2="${y + o.d}" stroke="#77777B" stroke-width="${px * 1.5}"/>` : `<line x1="${x}" y1="${y + o.d / 2}" x2="${x + o.w}" y2="${y + o.d / 2}" stroke="#77777B" stroke-width="${px * 1.5}"/>`;
+    s += `<text x="${x + o.w / 2}" y="${y + o.d / 2 + fs * .35}" font-size="${fs}" fill="#F3F2EF" text-anchor="middle" font-weight="500">${esc(o.name)}</text>`;
+    s += `<text x="${x + o.w / 2}" y="${y + o.d / 2 + fs * 1.5}" font-size="${fs * .8}" fill="#C9C7C2" text-anchor="middle">${m1(o.ridge)} m</text></g>`;
   }
   // Items
   for (const it of g.items || []) {
@@ -763,7 +932,7 @@ function drawPlan() {
     else s += `<g data-obj="${it.id}" class="bed"><rect x="${x}" y="${y}" width="${it.w}" height="${it.d}" rx=".03" fill="#FBFAF8" stroke="#BDB8AE" stroke-width="${px}" ${sel ? stroke : ""}/></g>`;
   }
   // Distances from the fence to the selected object, while editing
-  const so = S.sel && (bedById(S.sel) || itemById(S.sel));
+  const so = S.sel && objById(S.sel);
   if (S.edit && so) {
     const yb = Y(so.y), xm = so.x;
     s += dimLine(0, Y(so.y + so.d / 2), xm, Y(so.y + so.d / 2), `${cm(so.x)}`, px, fs, true);
@@ -808,7 +977,7 @@ function planDown(e) {
   const handle = e.target.closest("[data-handle]");
   const obj = e.target.closest("[data-obj]");
   const id = handle ? handle.dataset.handle : obj ? obj.dataset.obj : null;
-  const o = id && (bedById(id) || itemById(id));
+  const o = id && objById(id);
   const B = planBounds();
   gesture = { type: "tap", id, start: { x: e.clientX, y: e.clientY }, p0: p, o0: o ? { ...o } : null, resize: !!handle, c0: { x: plan.cx ?? (B.x0 + B.x1) / 2, y: plan.cy ?? (B.y0 + B.y1) / 2 }, moved: false };
 }
@@ -831,7 +1000,7 @@ function planMove(e) {
   if (!gesture.moved && dist < 6) return;
   gesture.moved = true;
   const p = svgPoint(svg, e);
-  const o = gesture.id && (bedById(gesture.id) || itemById(gesture.id));
+  const o = gesture.id && objById(gesture.id);
   if (S.edit && o && gesture.o0 && (S.sel === gesture.id || !gesture.resize)) {
     if (S.sel !== gesture.id) { S.sel = gesture.id; }
     if (gesture.resize) {
@@ -908,13 +1077,15 @@ function loadScene() {
     }
     stageEl.querySelector("#stage-msg").hidden = true;
     scene.build(D.garden, plantsFor3D());
+    sceneSun();
     if (S.sel) scene.select(S.sel);
   }).catch(() => {
     stageEl.querySelector("#stage-msg").textContent = "Kunde inte ladda 3D-modellen. Kontrollera anslutningen.";
     sceneLoading = null;
   });
 }
-const sceneBuild = () => { if (scene) scene.build(D.garden, plantsFor3D()); };
+const sceneBuild = () => { if (scene) { scene.build(D.garden, plantsFor3D()); sceneSun(); } };
+const sceneSun = () => { if (scene) scene.sun(sunDir(momentOf(S.year, S.month, S.hour))); };
 const scenePlants = () => { if (scene) scene.plants(plantsFor3D()); };
 
 function pick(id) {
@@ -925,6 +1096,7 @@ function pick(id) {
   if (!id) return;
   if (bedById(id)) openSheet({ kind: "bed", id });
   else if (itemById(id)) openSheet({ kind: "item", id });
+  else if (obsById(id)) openSheet({ kind: "obstacle", id });
 }
 function refreshSide() {
   const side = $("#side");
@@ -970,7 +1142,7 @@ function transition(dir, change) {
 /* ---------- Sheets ---------- */
 function sheetBody() {
   const k = S.sheet.kind;
-  return k === "bed" ? bedSheet() : k === "item" ? itemSheet() : k === "addcrop" ? cropPicker() : k === "planting" ? plantingSheet()
+  return k === "bed" ? bedSheet() : k === "item" ? itemSheet() : k === "obstacle" ? obstacleSheet() : k === "addcrop" ? cropPicker() : k === "planting" ? plantingSheet()
     : k === "garden" ? gardenSheet() : k === "data" ? dataSheet() : k === "entry" ? entrySheet() : "";
 }
 function sheetFoot() {
@@ -1028,6 +1200,7 @@ function bedSheet() {
       <li><button class="add" data-add-crop>Lägg till gröda${free > .05 && ps.length ? ` (${cm(free * L)} cm ledigt)` : ""}</button></li></ul>
     ${rot ? `<div class="block-label label">Växtföljd</div><p style="margin-top:0">${S.year - 1} växte här ${esc(rot.last.join(", "))}. I år passar <b>${esc(ROT_GROUPS[rot.next].toLowerCase())}</b>.</p>
       ${ps.some(p => rot.fams.has(CROP[p.crop]?.fam) && !CROP[p.crop]?.perennial) ? `<div class="warn">Samma växtfamilj som förra året. Det ökar risken för sjukdomar och skadedjur.</div>` : ""}` : ""}
+    ${sunSection(b)}
     <div class="block-label label"><span>Dagbok</span></div>
     ${logs.length ? `<ul class="rows">${logs.map(e => `<li><button class="row" data-entry="${e.id}"><span class="s" style="min-width:3.4em">${fmtDate(e.date)}</span><span><span class="t">${esc(e.kind)}${CROP[e.crop] ? " · " + esc(CROP[e.crop].name) : ""}</span><span class="s">${esc(e.text)}</span></span><span class="mark">›</span></button></li>`).join("")}</ul>` : ""}
     <button class="add" data-new-entry="${b.id}">Skriv i dagboken</button>
@@ -1055,6 +1228,39 @@ function plantStatus(p) {
   if (c.perennial) return `perenn · skörd ${range(c.harvest)}`;
   return `${c.how === "så" ? "så" : c.how === "sätt" ? "sätt" : "plantera ut"} ${range(c.out)}`;
 }
+function obstacleSheet() {
+  const o = obsById(S.sheet.id);
+  if (!o) return "";
+  const terrace = o.type === "terrace";
+  return `<div class="sheet-eyebrow label">Skuggar landet</div>
+    <h2 class="sheet-title">${esc(o.name)}</h2>
+    <p class="sheet-sub" style="margin-top:0">${terrace ? `Högre mark, ${m1(o.ridge)} m över landet` : `${cm(o.w)} × ${cm(o.d)} cm, ${m1(o.ridge)} m till nocken`}</p>
+    <div class="field wide" style="margin-top:12px"><input class="text-in" data-field="name" value="${esc(o.name)}" aria-label="Namn"></div>
+    <div class="block-label label">Höjd</div>
+    ${terrace ? numField("Högre än landet", "ridge", cm(o.ridge)) + numField("Slänten är", "ramp", cm(o.ramp || 0), "cm", "bred, från foten till krönet") : `
+      ${numField("Marken där den står", "base", cm(o.base || 0), "cm", "över landets mark")}
+      ${numField("Väggarna", "eaves", cm(o.eaves))}
+      ${numField("Nocken", "ridge", cm(o.ridge), "cm", "högsta punkten")}`}
+    <div class="block-label label">Plats</div>
+    <p class="hint" style="margin-top:0">${terrace ? "Slänten börjar (foten) där ytan slutar mot landet. Minus betyder väster om eller framför staketet." : "Minus betyder väster om eller framför staketet. Taket lutar åt långsidorna."}</p>
+    ${numField("Längd", "w", cm(o.w), "cm", "öst–väst")}
+    ${numField("Bredd", "d", cm(o.d), "cm", "fram–bak")}
+    ${numField("Från västra staketet", "x", cm(o.x))}
+    ${numField("Från främre staketet", "y", cm(o.y))}
+    <button class="danger" data-delete-obs>${S.armed === "obs" ? "Tryck igen för att ta bort" : "Ta bort"}</button>`;
+}
+function sunSection(b) {
+  const ms = [4, 5, 6, 7, 8, 9].map(m => [m, sunHours(b, S.year, m + .5)]);
+  const max = Math.max(16, ...ms.map(([, r]) => r.day));
+  const now = sunHours(b, S.year, S.month), mon = MONTHS[Math.floor(S.month) - 1];
+  const july = sunHours(b, S.year, 7.5).total;
+  const warn = plantingsIn(b.id, S.year).map(p => [CROP[p.crop], SUN_NEED[p.crop]]).filter(([c, n]) => c && n && july < n - .25);
+  return `<div class="block-label label"><span>Sol</span><span>${S.year}</span></div>
+    <p style="margin-top:0"><b>${hrs(now.total)}</b> direkt sol en dag i ${mon}: ${hrs(now.am)} före och ${hrs(now.pm)} efter middag. Solen är uppe ${hrs(now.day)}.</p>
+    <div class="sun-bars">${ms.map(([m, r]) => `<div><span class="v">${m1(r.total)}</span><span class="bar-out" style="height:${Math.round(r.day / max * 110)}px"><i style="height:${r.total / r.day * 100}%;background:${sunColor(r.total)}"></i></span><span class="m">${MON3[m - 1]}</span></div>`).join("")}</div>
+    <p class="hint" style="margin-top:6px">Timmar med direkt sol mitt i varje månad. Den ljusa delen är tiden solen är uppe men något skuggar.</p>
+    ${warn.map(([c, n]) => `<div class="warn">${esc(c.name)} vill ha minst ${n} h sol. Här blir det ${hrs(july)} i juli.</div>`).join("")}`;
+}
 function itemSheet() {
   const it = itemById(S.sheet.id);
   if (!it) return "";
@@ -1081,10 +1287,15 @@ function gardenSheet() {
     <div class="chips">${Object.entries(SIDES).map(([k, v]) => `<button class="chip small" data-gate-side="${k}" aria-pressed="${g.gate.side === k}">${v}</button>`).join("")}</div>
     <div style="margin-top:8px">${numField(g.gate.side === "S" || g.gate.side === "N" ? "Grinden från västra hörnet" : "Grinden från främre hörnet", "gat", cm(g.gate.at))}
     ${numField("Grindens bredd", "gww", cm(g.gate.w))}</div>
+    <div class="block-label label">Plats och väderstreck</div>
+    <p class="hint" style="margin-top:0">Används för solen. Platsen sparas bara på den här enheten.</p>
+    <div class="field"><label for="s-lat">Latitud<small>t.ex. 57,83</small></label><input id="s-lat" inputmode="decimal" data-site="lat" value="${String(D.garden.site.lat).replace(".", ",")}"></div>
+    <div class="field"><label for="s-lon">Longitud<small>t.ex. 12,38</small></label><input id="s-lon" inputmode="decimal" data-site="lon" value="${String(D.garden.site.lon).replace(".", ",")}"></div>
+    <div class="field"><label for="s-or">Baksidan pekar mot<small>grader, 0 = norr, minus = mot väster</small></label><input id="s-or" inputmode="decimal" data-site="orient" value="${String(D.garden.site.orient).replace(".", ",")}"></div>
     <div class="block-label label">Lägg till</div>
     <div class="chips">
       <button class="chip" data-new="bed">Bädd</button><button class="chip" data-new="stone">Odlingsyta med stenkant</button>
-      <button class="chip" data-new="compost">Kompost</button><button class="chip" data-new="obelisk">Obelisk</button><button class="chip" data-new="stool">Pall</button>
+      <button class="chip" data-new="compost">Kompost</button><button class="chip" data-new="obelisk">Obelisk</button><button class="chip" data-new="stool">Pall</button><button class="chip" data-new="building">Byggnad som skuggar</button><button class="chip" data-new="terrace">Högre mark</button>
     </div>
     <p class="hint" style="margin-top:12px">Det nya hamnar mitt i landet. Dra det på plats på kartan.</p>`;
 }
@@ -1159,6 +1370,7 @@ function newEntry(bed) {
 /* ---------- Changes ---------- */
 function changed(geometry) {
   save();
+  if (geometry) sunCache = new Map();
   if (geometry) sceneBuild(); else scenePlants();
   if (S.view === "land" && S.mode === "plan") drawPlan();
   refreshSide();
@@ -1181,7 +1393,12 @@ function addPlanting(bedId, cropId) {
 function addObject(kind) {
   const g = D.garden, cx = g.w / 2, cy = g.d / 2;
   let o;
-  if (kind === "bed" || kind === "stone") {
+  if (kind === "building" || kind === "terrace") {
+    o = kind === "building" ? { id: uid("o"), type: "building", name: "Byggnad", x: -6, y: 0, w: 4, d: 6, base: 0, eaves: 3, ridge: 5 }
+      : { id: uid("o"), type: "terrace", name: "Högre mark", x: -20, y: -10, w: 18, d: 30, base: 0, eaves: 2, ridge: 2 };
+    (g.obstacles ||= []).push(o);
+    S.sun = true; ui.set("sun", true);
+  } else if (kind === "bed" || kind === "stone") {
     const n = g.beds.filter(b => /^Bädd \d+$/.test(b.name)).length + 1;
     o = { id: uid("b"), name: kind === "stone" ? "Ny odlingsyta" : `Bädd ${n}`, x: snap(cx - 1), y: snap(cy - .6), w: 2, d: 1.2, h: kind === "stone" ? 0 : .25, finish: kind === "stone" ? "stone" : "wood", cover: null, trellis: null };
     g.beds.push(o);
@@ -1213,6 +1430,13 @@ document.addEventListener("click", e => {
   if (d.year) { S.year = Number(d.year); sceneBuild(); if (S.mode === "plan") drawPlan(); return refreshSide(); }
   if (d.seasonYear) { S.seasonYear = Number(d.seasonYear); return draw(); }
   if (d.bed && !("newEntry" in d)) { S.sel = d.bed; if (scene) scene.select(d.bed); if (S.mode === "plan") drawPlan(); refreshSide(); return openSheet({ kind: "bed", id: d.bed }); }
+  if (d.obs) { S.sel = d.obs; if (scene) scene.select(d.obs); if (S.mode === "plan") drawPlan(); refreshSide(); return openSheet({ kind: "obstacle", id: d.obs }); }
+  if ("sunToggle" in d) { S.sun = !S.sun; ui.set("sun", S.sun); plan.zoom = 1; plan.cx = plan.cy = null; drawPlan(); return refreshSide(); }
+  if ("deleteObs" in d) {
+    if (S.armed !== "obs") { S.armed = "obs"; return refreshSheet(); }
+    D.garden.obstacles = D.garden.obstacles.filter(o => o.id !== S.sheet.id);
+    S.sel = null; closeSheet(); return changed(true);
+  }
   if (d.item) { S.sel = d.item; if (scene) scene.select(d.item); if (S.mode === "plan") drawPlan(); refreshSide(); return openSheet({ kind: "item", id: d.item }); }
   if (d.sheet) return openSheet({ kind: d.sheet });
   if ("close" in d) return closeSheet();
@@ -1305,7 +1529,7 @@ document.addEventListener("change", e => {
       if (k === "gw") g.w = n; if (k === "gd") g.d = n; if (k === "gat") g.gate.at = Math.max(0, n); if (k === "gww") g.gate.w = n;
       changed(true); return refreshSheet();
     }
-    const o = S.sheet.kind === "bed" ? bedById(S.sheet.id) : itemById(S.sheet.id);
+    const o = S.sheet.kind === "bed" ? bedById(S.sheet.id) : S.sheet.kind === "obstacle" ? obsById(S.sheet.id) : itemById(S.sheet.id);
     if (!o) return;
     if (k === "name") { o.name = v.trim() || o.name; changed(false); return refreshSheet(); }
     const n = Number(v) / 100;
@@ -1313,6 +1537,11 @@ document.addEventListener("change", e => {
     if ((k === "w" || k === "d") && n < .1) return refreshSheet();
     o[k] = n;
     changed(true); return refreshSheet();
+  }
+  if (el.dataset.site) {
+    const v = Number(el.value.replace(",", ".").trim());
+    if (Number.isFinite(v)) { D.garden.site[el.dataset.site] = v; changed(true); }
+    return refreshSheet();
   }
   if (el.dataset.date !== undefined && S.sheet.kind === "planting") {
     const p = D.plantings.find(q => q.id === S.sheet.id);
@@ -1328,9 +1557,17 @@ document.addEventListener("input", e => {
   const el = e.target;
   if ("month" in el.dataset) {
     S.month = Number(el.value);
-    $("#when-label").textContent = dayLabel(S.month);
+    $("#when-label").textContent = dayLabel(S.month) + (S.mode === "3d" ? ` · ${clock(S.hour)}` : "");
     $("#when-sub").textContent = whenSub();
+    if (S.mode === "plan") { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(() => { drawPlan(); refreshBedSun(); }); return; }
+    sceneSun();
     return scenePlantsSoon();
+  }
+  if ("hour" in el.dataset) {
+    S.hour = Number(el.value);
+    $("#when-label").textContent = `${dayLabel(S.month)} · ${clock(S.hour)}`;
+    $("#when-sub").textContent = whenSub();
+    return sceneSun();
   }
   if (el.dataset.seg && S.sheet?.kind === "planting") {
     const p = D.plantings.find(q => q.id === S.sheet.id), v = Number(el.value) / 100;
@@ -1345,6 +1582,13 @@ document.addEventListener("input", e => {
   if (el.dataset.entryField === "date") refreshSheet();
 });
 let plantsRaf = 0;
+// The hours of sun in the bed list follow the month on the map.
+function refreshBedSun() {
+  const side = $("#side"); if (!side) return;
+  const keep = side.querySelector("[data-month]");
+  const t = side.scrollTop; side.innerHTML = landSide(); side.scrollTop = t;
+  const r = side.querySelector("[data-month]"); if (r && keep) r.value = S.month;
+}
 function scenePlantsSoon() { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(scenePlants); }
 
 document.addEventListener("keydown", e => {
