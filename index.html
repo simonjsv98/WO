@@ -134,6 +134,7 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 }
 .round { width: 44px; height: 44px; border-radius: 22px; background: rgba(251, 250, 248, .92); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(20, 20, 10, .08); transition: transform .16s var(--ease); }
 .round:active { transform: scale(.92); }
+.round[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .round svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .stage-cap { position: absolute; left: 12px; top: 12px; padding: 6px 12px; border-radius: 14px; background: rgba(251, 250, 248, .92); font-size: .85rem; color: var(--muted); pointer-events: none; }
 .side { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
@@ -724,6 +725,7 @@ const ICON = {
   center: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>`,
   ruler: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>`,
   check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  top: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg>`,
   close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`
 };
 
@@ -1136,7 +1138,7 @@ function stage() {
   stageEl.innerHTML = `<div class="three" id="three"></div><svg id="plan" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="stage-msg" id="stage-msg">Bygger landet…</div>
     <span class="stage-cap" id="stage-cap"></span>
-    <div class="stage-tools"><button class="round" data-recenter aria-label="Visa hela landet">${ICON.center}</button></div>
+    <div class="stage-tools"><button class="round" data-top aria-pressed="false" aria-label="Se landet ovanifrån">${ICON.top}</button><button class="round" data-recenter aria-label="Visa hela landet">${ICON.center}</button></div>
     <div class="pick-card" id="pick-card" hidden></div>`;
   const svg = stageEl.querySelector("#plan");
   svg.addEventListener("pointerdown", planDown);
@@ -1158,6 +1160,7 @@ function mountStage() {
   el.querySelector("#plan").style.display = S.mode === "plan" ? "block" : "none";
   el.querySelector("#stage-cap").textContent = S.mode === "plan" ? (S.edit ? "Redigerar" : "Ovanifrån") : `${S.year}`;
   el.querySelector("#stage-cap").hidden = S.mode === "3d";
+  el.querySelector("[data-top]").hidden = S.mode !== "3d";
   if (S.mode === "plan") { el.querySelector("#stage-msg").hidden = true; requestAnimationFrame(drawPlan); }
   else loadScene();
   refreshCard(false);
@@ -1190,9 +1193,10 @@ const scenePlants = () => { if (scene) scene.plants(plantsFor3D()); };
 
 /* Tapping a bed (or anything else) in 3D, on the map or in the list marks it and shows a small card over the stage.
    The garden stays in view and can still be turned and tapped; the card opens the full sheet when you want more. */
+function setTopBtn(on) { const b = stageEl && stageEl.querySelector("[data-top]"); if (b) b.setAttribute("aria-pressed", on); }
 function pick(id) {
   S.sel = id;
-  if (scene) scene.select(id);
+  if (scene) { scene.select(id); if (id && S.mode === "3d") scene.focus(id); }
   if (S.mode === "plan") drawPlan();
   refreshSide();
   refreshCard(true);
@@ -1580,7 +1584,8 @@ document.addEventListener("click", e => {
   if (d.go) return show(d.go);
   if (d.mode) { S.mode = d.mode; ui.set("mode", S.mode); if (S.mode === "3d") S.edit = false; return transitionStage(); }
   if ("edit" in d) { S.edit = !S.edit; if (!S.edit) { S.sel = null; } return transitionStage(); }
-  if ("recenter" in d) { if (S.mode === "3d" && scene) scene.reset(); else planDbl(); return; }
+  if ("recenter" in d) { if (S.mode === "3d" && scene) { scene.top(false); setTopBtn(false); } else planDbl(); return; }
+  if ("top" in d) { const on = t.getAttribute("aria-pressed") !== "true"; if (scene) scene.top(on); setTopBtn(on); return; }
   if (d.dismiss) { ui.set(d.dismiss, true); return refreshSide(); }
   if (d.year) { S.year = Number(d.year); sceneBuild(); if (S.mode === "plan") drawPlan(); return refreshSide(); }
   if (d.seasonYear) { S.seasonYear = Number(d.seasonYear); return draw(); }
@@ -1752,7 +1757,8 @@ function refreshBedSun() {
   const t = side.scrollTop; side.innerHTML = landSide(); side.scrollTop = t;
   const r = side.querySelector("[data-month]"); if (r && keep) r.value = S.month;
 }
-function scenePlantsSoon() { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(scenePlants); }
+// While a slider is dragged the plants follow at once, without the growing animation, so dragging stays smooth.
+function scenePlantsSoon() { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(() => { if (scene) scene.plants(plantsFor3D(), false); }); }
 
 document.addEventListener("keydown", e => {
   if (!sheet.hidden && e.key === "Escape") return closeSheet();
@@ -1923,6 +1929,9 @@ async function passHash(pw) {
 function start() {
   draw();
   settleApp();
+  // Fetch and prepare the 3D module in the background, so LANDET opens quickly.
+  const warm = () => import("./scene.js").catch(() => {});
+  "requestIdleCallback" in window ? requestIdleCallback(warm, { timeout: 2500 }) : setTimeout(warm, 1200);
 }
 if (ui.get("unlocked", "") === LOCK_HASH) start();
 else {

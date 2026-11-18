@@ -9,6 +9,7 @@ import {
   ACESFilmicToneMapping, DoubleSide, MathUtils, Shape, ExtrudeGeometry, Box3
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 const C = {
   sky: 0xdcebf5, grass: 0x86a95a, chips: 0xc6a77c, soil: 0x3d2d22, wood: 0xc9a06e, white: 0xeeebe4,
@@ -38,7 +39,7 @@ const mat = (color, extra = {}) => new MeshStandardMaterial({ color, roughness: 
 // Plant shapes. Each is a unit geometry; size and growth scale it.
 const GEO = {
   blades: new ConeGeometry(.045, .42, 5).translate(0, .21, 0),
-  rosette: new IcosahedronGeometry(.16, 1).scale(1, .55, 1).translate(0, .07, 0),
+  rosette: new IcosahedronGeometry(.16, 0).scale(1, .55, 1).translate(0, .07, 0),
   feathery: new ConeGeometry(.1, .32, 6).translate(0, .16, 0),
   mound: new IcosahedronGeometry(.26, 1).scale(1, .7, 1).translate(0, .14, 0),
   brassica: new IcosahedronGeometry(.27, 1).scale(1, .8, 1).translate(0, .2, 0),
@@ -46,7 +47,7 @@ const GEO = {
   vine: new CylinderGeometry(.06, .09, 1.2, 6).translate(0, .6, 0),
   big: new IcosahedronGeometry(.42, 1).scale(1, .45, 1).translate(0, .16, 0),
   flower: new IcosahedronGeometry(.11, 0).translate(0, .32, 0),
-  bush: new IcosahedronGeometry(.22, 1).translate(0, .2, 0),
+  bush: new IcosahedronGeometry(.22, 0).translate(0, .2, 0),
   stalk: new CylinderGeometry(.05, .07, 1.5, 6).translate(0, .75, 0),
   leaf: new IcosahedronGeometry(.5, 1).scale(1, .5, 1).translate(0, .3, 0)
 };
@@ -54,8 +55,13 @@ const FLOWER_STEM = new CylinderGeometry(.012, .012, .32, 4).translate(0, .16, 0
 
 export function createScene(el, { onPick } = {}) {
   const renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  // Full sharpness when still; while a finger turns the garden it draws at a lower resolution, which is much lighter.
+  const FULL_DPR = Math.min(devicePixelRatio || 1, 2), MOVE_DPR = Math.min(FULL_DPR, 1);
+  renderer.setPixelRatio(FULL_DPR);
   renderer.shadowMap.enabled = true;
+  // Shadows are only redrawn when the sun, the plants or the garden change, not when the camera moves.
+  renderer.shadowMap.autoUpdate = false;
+  const dirtyShadows = () => { renderer.shadowMap.needsUpdate = true; };
   renderer.shadowMap.type = PCFSoftShadowMap;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -83,9 +89,11 @@ export function createScene(el, { onPick } = {}) {
   controls.enableDamping = true;
   controls.dampingFactor = .09;
   controls.maxPolarAngle = Math.PI * .47;
-  controls.minDistance = 3;
+  controls.minDistance = 2;
   controls.maxDistance = 40;
   controls.screenSpacePanning = false;
+  controls.zoomToCursor = true;
+  controls.rotateSpeed = .8;
 
   const grassTex = speckle("#86a95a", ["#7b9d50", "#93b566", "#748f48", "#9bbd6e"], 256, 5000);
   const chipTex = speckle("#c6a77c", ["#b08f63", "#d8bc93", "#a27f55", "#e2cba6", "#8f6d48"], 256, 3800);
@@ -101,6 +109,7 @@ export function createScene(el, { onPick } = {}) {
   let env = null;   // the trees around the garden, kept when the garden is rebuilt
   let beds = new Map();      // bed id -> { group, walls[], plants: Group, len, axis }
   let groups = new Map();    // any id -> its group, for the highlight ring
+  let bounds = new Map();    // any id -> its box in 3D, kept after the static parts are merged (for tapping and the ring)
   let ring = null;
   let pickables = [];
   let size = { w: 10, d: 8 };
@@ -117,6 +126,7 @@ export function createScene(el, { onPick } = {}) {
     scene.add(world);
     beds = new Map();
     groups = new Map();
+    bounds = new Map();
     ring = null;
     pickables = [];
   }
@@ -225,6 +235,7 @@ export function createScene(el, { onPick } = {}) {
     const walls = g.children.slice(0, 4);
     for (const m of g.children) { m.userData.bedId = b.id; pickables.push(m); }
     const plants = new Group();
+    plants.userData.keep = true;
     plants.position.y = h - .04;
     g.add(plants);
     // Covers: hoops with fleece or net along the long side.
@@ -377,6 +388,7 @@ export function createScene(el, { onPick } = {}) {
     g.position.set(X(b.x + b.w / 2), 0, Z(b.y + b.d / 2));
     g.traverse(o => { if (o.isMesh) { o.userData.bedId = b.id; pickables.push(o); } });
     const plants = new Group();
+    plants.userData.keep = true;
     plants.position.y = .01;
     g.add(plants);
     world.add(g);
@@ -434,9 +446,15 @@ export function createScene(el, { onPick } = {}) {
 
   /* ---------- Plants ---------- */
   function rand(i) { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+  // One material per colour, shared by all plants of that colour.
+  const plantMats = new Map();
+  function plantMat(color) {
+    if (!plantMats.has(color)) plantMats.set(color, mat(color, { roughness: .75 }));
+    return plantMats.get(color);
+  }
   function plantsFor(entry, list) {
     const { plants, data: b } = entry;
-    for (const c of plants.children) if (c.isInstancedMesh) c.material.dispose();
+    for (const c of plants.children) if (c.isInstancedMesh) c.dispose();
     plants.clear();
     const along = b.w >= b.d, L = along ? b.w : b.d, S = along ? b.d : b.w;
     for (const p of list) {
@@ -447,7 +465,7 @@ export function createScene(el, { onPick } = {}) {
       const usableS = Math.max(.05, S - .14);
       const rows = Math.max(1, Math.floor(usableS / sp + .001)), cols = Math.max(1, Math.floor(segL / sp + .001));
       const n = Math.min(400, rows * cols);
-      const leaf = mat(p.color || 0x5f9d3e, { roughness: .75 });
+      const leaf = plantMat(p.color || 0x5f9d3e);
       const inst = new InstancedMesh(GEO[shape], leaf, n);
       inst.castShadow = true; inst.receiveShadow = true;
       const o = new Object3D();
@@ -470,7 +488,7 @@ export function createScene(el, { onPick } = {}) {
       pickables.push(inst);
       // Fruit or flowers show once the crop is close to ready.
       if (flowers.length) {
-        const fm = new InstancedMesh(GEO.flower, mat(p.fruit, { roughness: .5 }), flowers.length);
+        const fm = new InstancedMesh(GEO.flower, plantMat(p.fruit), flowers.length);
         flowers.forEach((m, i) => fm.setMatrixAt(i, m));
         fm.castShadow = true;
         plants.add(fm);
@@ -504,14 +522,22 @@ export function createScene(el, { onPick } = {}) {
   /* ---------- Render loop: only while something moves ---------- */
   let raf = 0, alive = true;
   function render() { renderer.render(scene, camera); }
+  let lowRes = false;
   function loop() {
     raf = 0;
     if (!alive) return;
     const moved = controls.update();
+    if ((moved || dragging) && !lowRes && MOVE_DPR < FULL_DPR) { lowRes = true; renderer.setPixelRatio(MOVE_DPR); }
+    if (!moved && !dragging && lowRes) { lowRes = false; renderer.setPixelRatio(FULL_DPR); }
     render();
     if (moved || dragging) raf = requestAnimationFrame(loop);
   }
-  const kick = () => { if (!raf && alive) raf = requestAnimationFrame(loop); };
+  const kick = () => {
+    // Keep the point the camera turns around near the garden, so it can't be lost off in the fields.
+    const lim = Math.max(size.w, size.d) / 2 + 15, t = controls.target;
+    t.x = Math.max(-lim, Math.min(lim, t.x)); t.z = Math.max(-lim, Math.min(lim, t.z)); t.y = Math.max(0, Math.min(6, t.y));
+    if (!raf && alive) raf = requestAnimationFrame(loop);
+  };
   controls.addEventListener("change", kick);
   let dragging = false;
   controls.addEventListener("start", () => { dragging = true; kick(); });
@@ -542,10 +568,100 @@ export function createScene(el, { onPick } = {}) {
     const r = renderer.domElement.getBoundingClientRect();
     ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(ptr, camera);
-    const hit = ray.intersectObjects(pickables, false)[0];
-    const id = hit ? (hit.object.userData.bedId || hit.object.userData.itemId || hit.object.userData.obsId) : null;
-    onPick && onPick(id || null);
+    onPick && onPick(pickAt(ray));
   });
+
+  // What the finger hit: the nearest box along the ray. Beds and things in the garden before buildings and higher ground.
+  const hitP = new Vector3();
+  function pickAt(r) {
+    let best = null, bestD = Infinity, far = null, farD = Infinity;
+    for (const [id, b] of bounds) {
+      if (!r.ray.intersectBox(b.box, hitP)) continue;
+      const d = hitP.distanceTo(r.ray.origin);
+      if (b.big) { if (d < farD) { farD = d; far = id; } } else if (d < bestD) { bestD = d; best = id; }
+    }
+    return best || far;
+  }
+  // Glide the camera so the chosen thing is in the middle, keeping the angle; come closer if far away.
+  let focusAnim = 0;
+  function focus(id) {
+    const b = bounds.get(id);
+    if (!b || b.terrace) return;
+    cancelAnimationFrame(focusAnim);
+    const c = b.box.getCenter(new Vector3()); c.y = 0;
+    const t0 = controls.target.clone(), p0 = camera.position.clone();
+    const off = p0.clone().sub(t0), want = Math.max(6, Math.min(off.length(), b.box.getSize(new Vector3()).length() * 2.2 + 3));
+    off.setLength(want);
+    const t1 = c, p1 = c.clone().add(off);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { controls.target.copy(t1); camera.position.copy(p1); controls.update(); render(); return; }
+    const start = performance.now(), ms = 650;
+    const step = now => {
+      const k = Math.min(1, (now - start) / ms), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      controls.target.lerpVectors(t0, t1, e); camera.position.lerpVectors(p0, p1, e);
+      controls.update(); render();
+      if (k < 1) focusAnim = requestAnimationFrame(step);
+    };
+    focusAnim = requestAnimationFrame(step);
+  }
+  // Straight from above, or back to the usual view.
+  let topView = false;
+  function setTop(on) {
+    topView = on;
+    cancelAnimationFrame(focusAnim);
+    const t0 = controls.target.clone(), p0 = camera.position.clone();
+    const span = Math.max(size.w, size.d) * (camera.aspect < 1 ? 2.1 : 1.35) + 2;
+    const t1 = on ? new Vector3(0, 0, 0) : new Vector3(0, 0, 0);
+    let p1;
+    if (on) { const a = Math.atan2(p0.x - t0.x, p0.z - t0.z); p1 = new Vector3(Math.sin(a) * .01, span, Math.cos(a) * .01); controls.maxPolarAngle = 0.0001; }
+    else { controls.maxPolarAngle = Math.PI * .47; frame(true); return; }
+    const start = performance.now(), ms = 700;
+    const step = now => {
+      const k = Math.min(1, (now - start) / ms), e = 1 - Math.pow(1 - k, 3);
+      controls.target.lerpVectors(t0, t1, e); camera.position.lerpVectors(p0, p1, e);
+      controls.update(); render();
+      if (k < 1) focusAnim = requestAnimationFrame(step); else controls.maxPolarAngle = .35;
+    };
+    focusAnim = requestAnimationFrame(step);
+  }
+
+  /* Everything that stands still (fence, bed frames, hoops, barn, compost...) is merged into one mesh per material,
+     so the phone draws a handful of objects instead of hundreds. Plants and the ring stay separate. */
+  function bake() {
+    world.updateMatrixWorld(true);
+    const buckets = new Map(), done = [];
+    world.traverse(o => {
+      if (o.isInstancedMesh || o.userData.keep || !(o.isMesh || o.isLineSegments)) return;
+      let p = o.parent; while (p) { if (p.userData.keep) return; p = p.parent; }
+      const m = o.material;
+      const key = o.isLineSegments ? `L${m.color.getHex()}|${m.opacity}`
+        : `M${m.type}|${m.color.getHex()}|${m.map ? m.map.uuid : ""}|${m.transparent}|${m.opacity}|${m.side}|${m.depthWrite}|${m.roughness}|${o.castShadow}|${o.receiveShadow}`;
+      let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      g.applyMatrix4(o.matrixWorld);
+      g.clearGroups();
+      for (const name of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(name)) g.deleteAttribute(name);
+      if (o.isMesh && !g.attributes.uv) g.setAttribute("uv", new Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+      if (!buckets.has(key)) buckets.set(key, { obj: o, geos: [] });
+      buckets.get(key).geos.push(g);
+      done.push(o);
+    });
+    for (const o of done) { o.parent.remove(o); if (o.geometry && !Object.values(GEO).includes(o.geometry)) o.geometry.dispose(); }
+    for (const { obj, geos } of buckets.values()) {
+      const g = mergeGeometries(geos, false);
+      geos.forEach(x => x.dispose());
+      if (!g) continue;
+      const m = obj.isLineSegments ? new LineSegments(g, obj.material) : new Mesh(g, obj.material);
+      m.castShadow = obj.castShadow; m.receiveShadow = obj.receiveShadow;
+      m.userData.baked = true;
+      world.add(m);
+    }
+  }
+  // Boxes for tapping and the ring, taken before the merge.
+  function measure(garden) {
+    const add = (id, g, extra) => { if (!g) return; const box = new Box3().setFromObject(g); if (!box.isEmpty()) bounds.set(id, { box, ...extra }); };
+    for (const b of garden.beds) { const g = groups.get(b.id); add(b.id, g); const e = bounds.get(b.id); if (e) e.box.max.y = Math.max(e.box.max.y, .9); }
+    for (const it of garden.items || []) add(it.id, groups.get(it.id));
+    for (const o of garden.obstacles || []) add(o.id, groups.get(o.id), { big: true, terrace: o.type === "terrace" });
+  }
 
   // Smooth growth: the plant list eases from the old growth to the new.
   let growAnim = 0;
@@ -567,6 +683,7 @@ export function createScene(el, { onPick } = {}) {
         plantsFor(e, list);
         if (t >= 1) e.last = want;
       }
+      dirtyShadows();
       render();
     };
     if (!animate) return apply(1);
@@ -583,18 +700,15 @@ export function createScene(el, { onPick } = {}) {
   let ringAnim = 0;
   function highlight(id) {
     selected = id;
-    for (const [bid, e] of beds) {
-      const on = bid === id;
-      if (e.wallMat) { e.wallMat.emissive = new Color(on ? 0xF2C94C : 0x000000); e.wallMat.emissiveIntensity = on ? .45 : 0; }
-    }
     if (ring) { world.remove(ring); ring.traverse(m => m.geometry && m.geometry.dispose()); ring = null; }
     cancelAnimationFrame(ringAnim);
-    const g = id && groups.get(id);
-    if (g) {
-      const bb = new Box3().setFromObject(g);
+    const bx = id && bounds.get(id);
+    if (bx && !bx.terrace) {
+      const bb = bx.box;
       const w = bb.max.x - bb.min.x, d = bb.max.z - bb.min.z, pad = .12, t = .09;
       const m = new MeshBasicMaterial({ color: 0xF2C94C, transparent: true, opacity: .95, depthWrite: false });
       ring = new Group();
+      ring.userData.keep = true;
       const W = w + 2 * pad, Dd = d + 2 * pad;
       for (const [rw, rd, x, z] of [[W + t, t, 0, Dd / 2], [W + t, t, 0, -Dd / 2], [t, Dd, W / 2, 0], [t, Dd, -W / 2, 0]]) {
         const b = new Mesh(new BoxGeometry(rw, .04, rd), m);
@@ -642,6 +756,9 @@ export function createScene(el, { onPick } = {}) {
       for (const o of (garden.obstacles || []).filter(o => o.type !== "terrace")) half = Math.max(half, Math.abs(X(o.x)) + 2, Math.abs(X(o.x + o.w)) + 2, Math.abs(Z(o.y)) + 2, Math.abs(Z(o.y + o.d)) + 2);
       Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 1, far: 140 });
       sun.shadow.camera.updateProjectionMatrix();
+      measure(garden);
+      bake();
+      dirtyShadows();
       for (const e of beds.values()) e.last = [];
       setPlants(plants, false);
       if (selected) highlight(selected);
@@ -661,6 +778,7 @@ export function createScene(el, { onPick } = {}) {
       hemi.intensity = .25 + .75 * dawn;
       const sky = new Color(0x1c2638).lerp(new Color(0xf2b98a), Math.min(1, dawn * 1.6)).lerp(new Color(C.sky), day);
       scene.background = sky; scene.fog.color = sky;
+      dirtyShadows();
       render();
     },
     /* Trees around the garden from the height data: a crown on every 2 m where trees stand, as tall as measured.
@@ -680,30 +798,41 @@ export function createScene(el, { onPick } = {}) {
         crowns.push([e * co - nn * so, e * so + nn * co, h, gr, crowns.length]);
       }
       env = new Group();
-      const geo = new IcosahedronGeometry(1, 1), o3 = new Object3D(), col = new Color();
-      const inst = new InstancedMesh(geo, mat(0xffffff, { roughness: .9 }), crowns.length);
+      const o3 = new Object3D(), col = new Color();
+      // Crowns near the garden are rounder; the far ones use a simpler shape, which looks the same at a distance.
+      const nearC = crowns.filter(c => Math.hypot(c[0], c[1]) < 30), farC = crowns.filter(c => Math.hypot(c[0], c[1]) >= 30);
+      const crownMat = mat(0xffffff, { roughness: .9 });
+      const instN = new InstancedMesh(new IcosahedronGeometry(1, 1), crownMat, Math.max(1, nearC.length));
+      const instF = new InstancedMesh(new IcosahedronGeometry(1, 0), crownMat, Math.max(1, farC.length));
+      instN.count = nearC.length; instF.count = farC.length;
       const trunks = new InstancedMesh(new CylinderGeometry(.12, .18, 1, 6).translate(0, .5, 0), mat(0x5b4632), crowns.length);
+      const idx = new Map([...nearC.map((c, k) => [c[4], [instN, k]]), ...farC.map((c, k) => [c[4], [instF, k]])]);
       crowns.forEach(([dx, dy, h, gr, i]) => {
+        const [inst, k] = idx.get(i);
         const ch = Math.max(1.6, Math.min(9, h * .55)), rad = 1.45 + rand(i) * .5;
         o3.position.set(dx + (rand(i + 7) - .5) * .6, gr + h - ch / 2, -dy + (rand(i + 9) - .5) * .6);
         o3.rotation.set(0, rand(i + 3) * 6, 0); o3.scale.set(rad, ch / 2, rad); o3.updateMatrix();
-        inst.setMatrixAt(i, o3.matrix);
-        inst.setColorAt(i, col.setHSL(.27 + rand(i + 5) * .06, .38 + rand(i + 1) * .2, .2 + rand(i + 2) * .1));
+        inst.setMatrixAt(k, o3.matrix);
+        inst.setColorAt(k, col.setHSL(.27 + rand(i + 5) * .06, .38 + rand(i + 1) * .2, .2 + rand(i + 2) * .1));
         o3.position.set(dx, gr, -dy); o3.rotation.set(0, 0, 0); o3.scale.set(1, Math.max(.1, h - ch * .8), 1); o3.updateMatrix();
         trunks.setMatrixAt(i, o3.matrix);
       });
-      inst.castShadow = inst.receiveShadow = trunks.castShadow = true;
-      env.add(inst, trunks);
+      instN.castShadow = instN.receiveShadow = instF.castShadow = instF.receiveShadow = trunks.castShadow = true;
+      env.add(instN, instF, trunks);
       scene.add(env);
       const half = 45;
       Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half });
       sun.shadow.camera.updateProjectionMatrix();
+      dirtyShadows();
       render();
     },
-    plants(plants) { setPlants(plants, !matchMedia("(prefers-reduced-motion: reduce)").matches); },
+    plants(plants, animate = true) { setPlants(plants, animate && !matchMedia("(prefers-reduced-motion: reduce)").matches); },
+    focus,
+    top(on) { setTop(on); },
     select: highlight,
     reset() { frame(true); },
     resize,
+    stats() { renderer.render(scene, camera); const i = renderer.info; return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs.length }; },
     dispose() {
       alive = false;
       ro.disconnect();
