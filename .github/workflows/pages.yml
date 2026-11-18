@@ -1,8 +1,8 @@
 name: Publicera till GitHub Pages
 
+# Träningsappen vilar på den här grenen. Den publiceras bara om någon startar arbetsflödet för hand;
+# main publicerar ODLA till samma Pages-sida.
 on:
-  push:
-    branches: [main, claude/charming-rubin-ppchre]
   workflow_dispatch:
 
 permissions:
