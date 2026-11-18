@@ -5,7 +5,7 @@ import {
   WebGLRenderer, Scene, PerspectiveCamera, Color, Fog, HemisphereLight, DirectionalLight, Group, Mesh,
   BoxGeometry, PlaneGeometry, CylinderGeometry, ConeGeometry, IcosahedronGeometry, DodecahedronGeometry, TorusGeometry,
   SphereGeometry, MeshStandardMaterial, MeshBasicMaterial, LineBasicMaterial, LineSegments, BufferGeometry, Float32BufferAttribute,
-  InstancedMesh, Object3D, Raycaster, Vector2, Vector3, CanvasTexture, RepeatWrapping, SRGBColorSpace, PCFSoftShadowMap,
+  InstancedMesh, Object3D, Raycaster, Vector2, Vector3, CanvasTexture, RepeatWrapping, SRGBColorSpace, PCFShadowMap, MeshLambertMaterial,
   ACESFilmicToneMapping, DoubleSide, MathUtils, Shape, ExtrudeGeometry, Box3
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -34,7 +34,8 @@ function speckle(base, dots, size = 256, n = 2600) {
   return t;
 }
 
-const mat = (color, extra = {}) => new MeshStandardMaterial({ color, roughness: .9, metalness: 0, ...extra });
+// Lambert lighting: matte surfaces look the same as with the physically based material, at a fraction of the cost per pixel.
+const mat = (color, extra = {}) => { const { roughness, metalness, ...rest } = extra; return new MeshLambertMaterial({ color, ...rest }); };
 
 // Plant shapes. Each is a unit geometry; size and growth scale it.
 const GEO = {
@@ -54,15 +55,27 @@ const GEO = {
 const FLOWER_STEM = new CylinderGeometry(.012, .012, .32, 4).translate(0, .16, 0);
 
 export function createScene(el, { onPick } = {}) {
-  const renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-  // Full sharpness when still; while a finger turns the garden it draws at a lower resolution, which is much lighter.
-  const FULL_DPR = Math.min(devicePixelRatio || 1, 2), MOVE_DPR = Math.min(FULL_DPR, 1);
-  renderer.setPixelRatio(FULL_DPR);
+  /* Kept light for phones (three.js practice for mobile): a fixed, modest resolution, no multisampling on sharp
+     retina screens, simple shadows that are only redrawn when the light changes, and drawing only when something moves. */
+  const touch = matchMedia("(pointer: coarse)").matches, dpr = devicePixelRatio || 1;
+  const renderer = new WebGLRenderer({ antialias: dpr < 2, alpha: false, powerPreference: "high-performance" });
+  // One resolution, set once (changing it mid-gesture causes a hitch). If moving is still slow on this device, it
+  // steps down once and the device remembers it.
+  let DPR = Math.min(dpr, touch ? 1.5 : 2);
+  try { const saved = Number(localStorage.getItem("odla-dpr")); if (saved > 0 && saved < DPR) DPR = saved; } catch (e) {}
+  renderer.setPixelRatio(DPR);
   renderer.shadowMap.enabled = true;
   // Shadows are only redrawn when the sun, the plants or the garden change, not when the camera moves.
   renderer.shadowMap.autoUpdate = false;
-  const dirtyShadows = () => { renderer.shadowMap.needsUpdate = true; };
-  renderer.shadowMap.type = PCFSoftShadowMap;
+  // While a slider is dragged the shadows are redrawn at most a few times a second, and once more when it stops.
+  let lastShadow = 0, shadowTimer = 0;
+  const dirtyShadows = (soon) => {
+    clearTimeout(shadowTimer);
+    const now = performance.now();
+    if (!soon || now - lastShadow > 180) { renderer.shadowMap.needsUpdate = true; lastShadow = now; }
+    if (soon) shadowTimer = setTimeout(() => { renderer.shadowMap.needsUpdate = true; lastShadow = performance.now(); render(); }, 200);
+  };
+  renderer.shadowMap.type = PCFShadowMap;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = SRGBColorSpace;
@@ -80,7 +93,7 @@ export function createScene(el, { onPick } = {}) {
   const sun = new DirectionalLight(0xfff3dc, 2.1);
   sun.position.set(-8, 14, 9);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(touch ? 1024 : 2048, touch ? 1024 : 2048);
   sun.shadow.bias = -.0004;
   sun.shadow.normalBias = .02;
   scene.add(sun, sun.target);
@@ -243,7 +256,7 @@ export function createScene(el, { onPick } = {}) {
     if (b.cover === "fleece" || b.cover === "net") {
       const r = S / 2 - .02;
       const tunnel = new Mesh(new CylinderGeometry(r, r, L - .1, 24, 1, true, -Math.PI / 2, Math.PI),
-        new MeshStandardMaterial({ color: C.fleece, transparent: true, opacity: b.cover === "fleece" ? .78 : .22, roughness: 1, side: DoubleSide, depthWrite: b.cover === "fleece" }));
+        new MeshLambertMaterial({ color: C.fleece, transparent: true, opacity: b.cover === "fleece" ? .78 : .22, side: DoubleSide, depthWrite: b.cover === "fleece" }));
       tunnel.rotation.z = Math.PI / 2;
       if (!along) tunnel.rotation.y = Math.PI / 2;
       tunnel.position.y = h;
@@ -414,7 +427,7 @@ export function createScene(el, { onPick } = {}) {
       sh.moveTo(span / 2, 0); sh.lineTo(span / 2 - ramp, h); sh.lineTo(-span / 2, h); sh.lineTo(-span / 2, 0); sh.closePath();
       const geo = new ExtrudeGeometry(sh, { depth, bevelEnabled: false });
       geo.translate(0, 0, -depth / 2);
-      const m = new Mesh(geo, new MeshStandardMaterial({ color: 0x9fb87a, map: grassTex, roughness: .95 }));
+      const m = new Mesh(geo, new MeshLambertMaterial({ color: 0x9fb87a, map: grassTex }));
       m.rotation.y = { E: 0, W: Math.PI, N: Math.PI / 2, S: -Math.PI / 2 }[foot];
       m.position.set(cx, o.base || 0, cz);
       m.receiveShadow = m.castShadow = true;
@@ -522,15 +535,26 @@ export function createScene(el, { onPick } = {}) {
   /* ---------- Render loop: only while something moves ---------- */
   let raf = 0, alive = true;
   function render() { renderer.render(scene, camera); }
-  let lowRes = false;
-  function loop() {
-    raf = 0;
+  let frames = [], lastT = 0, recent = [];
+  function loop(t) {
+    raf = -1;   // busy: a "change" from controls.update() below must not schedule a second frame
     if (!alive) return;
     const moved = controls.update();
-    if ((moved || dragging) && !lowRes && MOVE_DPR < FULL_DPR) { lowRes = true; renderer.setPixelRatio(MOVE_DPR); }
-    if (!moved && !dragging && lowRes) { lowRes = false; renderer.setPixelRatio(FULL_DPR); }
     render();
+    // Frame times while moving; if most frames are slow, step the resolution down once.
+    if (lastT && t - lastT < 200) { frames.push(t - lastT); recent.push(t - lastT); if (recent.length > 60) recent.shift(); }
+    lastT = t;
+    if (frames.length >= 45) {
+      const sorted = frames.sort((a, b) => a - b), median = sorted[frames.length >> 1];
+      frames = [];
+      if (median > 24 && DPR > 1) {
+        DPR = Math.max(1, Math.round((DPR - .25) * 4) / 4);
+        renderer.setPixelRatio(DPR);
+        try { localStorage.setItem("odla-dpr", DPR); } catch (e) {}
+      }
+    }
     if (moved || dragging) raf = requestAnimationFrame(loop);
+    else { raf = 0; lastT = 0; }
   }
   const kick = () => {
     // Keep the point the camera turns around near the garden, so it can't be lost off in the fields.
@@ -683,7 +707,7 @@ export function createScene(el, { onPick } = {}) {
         plantsFor(e, list);
         if (t >= 1) e.last = want;
       }
-      dirtyShadows();
+      dirtyShadows(!animate);
       render();
     };
     if (!animate) return apply(1);
@@ -778,7 +802,7 @@ export function createScene(el, { onPick } = {}) {
       hemi.intensity = .25 + .75 * dawn;
       const sky = new Color(0x1c2638).lerp(new Color(0xf2b98a), Math.min(1, dawn * 1.6)).lerp(new Color(C.sky), day);
       scene.background = sky; scene.fog.color = sky;
-      dirtyShadows();
+      dirtyShadows(true);
       render();
     },
     /* Trees around the garden from the height data: a crown on every 2 m where trees stand, as tall as measured.
@@ -832,7 +856,9 @@ export function createScene(el, { onPick } = {}) {
     select: highlight,
     reset() { frame(true); },
     resize,
-    stats() { renderer.render(scene, camera); const i = renderer.info; return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs.length }; },
+    // Frames per second while moving, from the last 60 frames, and the resolution in use.
+    fps() { if (recent.length < 5) return null; const s2 = [...recent].sort((a, b) => a - b); return { fps: Math.round(1000 / s2[s2.length >> 1]), dpr: DPR }; },
+    stats() { renderer.render(scene, camera); const i = renderer.info; return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs.length, dpr: DPR }; },
     dispose() {
       alive = false;
       ro.disconnect();

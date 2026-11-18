@@ -100,7 +100,7 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .stage-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .95rem; padding: 20px; text-align: center; pointer-events: none; }
 .stage-tools { position: absolute; right: 12px; top: 12px; display: flex; gap: 8px; }
 /* The card for what you tapped: floats over the bottom of the stage, the garden stays visible and usable around it. */
-.pick-card { position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 440px; padding: 14px 16px 12px; border-radius: 18px; background: rgba(251, 250, 248, .96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(20, 24, 10, .18), 0 0 0 1px rgba(20, 24, 10, .06); }
+.pick-card { position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 440px; padding: 14px 16px 12px; border-radius: 18px; background: #FBFAF8; box-shadow: 0 6px 24px rgba(20, 24, 10, .18), 0 0 0 1px rgba(20, 24, 10, .06); }
 #app .pick-card, #app .pick-card * { touch-action: manipulation; }
 .pick-card.in { animation: card-in .26s var(--ease); }
 .pick-card.swap { animation: card-swap .22s var(--ease); }
@@ -1758,7 +1758,12 @@ function refreshBedSun() {
   const r = side.querySelector("[data-month]"); if (r && keep) r.value = S.month;
 }
 // While a slider is dragged the plants follow at once, without the growing animation, so dragging stays smooth.
-function scenePlantsSoon() { cancelAnimationFrame(plantsRaf); plantsRaf = requestAnimationFrame(() => { if (scene) scene.plants(plantsFor3D(), false); }); }
+let plantsAt = 0, plantsTimer = 0;
+function scenePlantsSoon() {
+  clearTimeout(plantsTimer);
+  const run = () => { plantsAt = performance.now(); if (scene) scene.plants(plantsFor3D(), false); };
+  if (performance.now() - plantsAt > 100) requestAnimationFrame(run); else plantsTimer = setTimeout(run, 100);
+}
 
 document.addEventListener("keydown", e => {
   if (!sheet.hidden && e.key === "Escape") return closeSheet();
@@ -1929,6 +1934,13 @@ async function passHash(pw) {
 function start() {
   draw();
   settleApp();
+  // Add #fps to the address to see how smoothly 3D runs on this device (frames per second while turning the garden).
+  if (location.hash === "#fps") {
+    const m = document.createElement("div");
+    m.style.cssText = "position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:50;padding:4px 10px;border-radius:10px;background:#1B1A18;color:#D4EC9A;font:600 13px var(--font);pointer-events:none";
+    document.body.appendChild(m);
+    setInterval(() => { const f = scene && scene.fps(); m.textContent = f ? `${f.fps} bilder/s · ${f.dpr}×` : "vrid landet för att mäta"; }, 500);
+  }
   // Fetch and prepare the 3D module in the background, so LANDET opens quickly.
   const warm = () => import("./scene.js").catch(() => {});
   "requestIdleCallback" in window ? requestIdleCallback(warm, { timeout: 2500 }) : setTimeout(warm, 1200);
