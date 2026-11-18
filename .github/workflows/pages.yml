@@ -1,8 +1,8 @@
-name: Publicera till GitHub Pages
+name: Publicera ODLA till GitHub Pages
 
 on:
   push:
-    branches: [main, claude/charming-rubin-ppchre, claude/determined-hypatia-7odkin]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -19,18 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      # ODLA, the garden app, is published beside the training app at /odla/.
-      - run: mkdir -p dist/odla && cp odla/index.html odla/scene.js odla/apple-touch-icon.png dist/odla/
+      # Appen är färdigbyggd i repot (scene.js byggs lokalt med npm run build); bara de publika filerna läggs ut.
+      - run: mkdir _site && cp index.html scene.js apple-touch-icon.png _site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
 
   deploy:
     needs: build
