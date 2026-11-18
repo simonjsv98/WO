@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ODLA</title>
 <script>try { const p = JSON.parse(sessionStorage.getItem("updateWipe")); if (p){ document.documentElement.classList.add("wipe-hold"); document.documentElement.style.setProperty("--wipe-top",p[2]+"px"); } } catch(e){}</script>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="googlebot" content="noindex, nofollow">
 <meta name="theme-color" content="#F3F2EF">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="apple-touch-icon.png">
@@ -272,6 +274,19 @@ html.wipe-hold::after { content: "ODLA"; position: fixed; left: 0; right: 0; bot
   .two { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); column-gap: 56px; align-items: start; }
   .two > .sticky { position: sticky; top: 0; }
 }
+/* Lock screen: the page asks for the password before the app starts. */
+.lock { position: fixed; inset: 0; z-index: 40; background: #24412C; color: #D4EC9A; display: flex; align-items: center; justify-content: center; padding: 24px; transition: opacity .35s var(--ease); }
+.lock.gone { opacity: 0; pointer-events: none; }
+.lock form { width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.lock svg { width: 150px; height: 150px; }
+.lock h1 { font: 600 2.1rem/1 var(--font); letter-spacing: .04em; margin-top: 4px; }
+.lock p { margin-top: 10px; opacity: .8; font-size: 1rem; }
+.lock input { margin-top: 26px; width: 100%; min-height: 56px; border-radius: 28px; border: 0; padding: 0 22px; font-size: 1.1rem; text-align: center; background: #F3F2EF; color: #1B1A18; }
+.lock button { margin-top: 12px; width: 100%; min-height: 56px; border-radius: 28px; background: #D4EC9A; color: #24412C; font-weight: 600; font-size: 1.1rem; text-align: center; transition: transform .16s var(--ease); }
+.lock button:active { transform: scale(.97); }
+.lock .err { min-height: 1.5em; margin-top: 12px; color: #FFE3D2; font-size: .95rem; }
+.lock.shake form { animation: shake .36s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -1489,9 +1504,46 @@ document.addEventListener("click", e => {
   if (swallowClick) { e.stopPropagation(); e.preventDefault(); swallowClick = false; }
 }, true);
 
-/* ---------- Start ---------- */
-draw();
-settleApp();
+/* ---------- Password ----------
+   The page is public on GitHub Pages but not indexed, and opens with a password. Only a PBKDF2 hash of the password is
+   stored here. The device remembers an unlocked page. This keeps strangers out of the page; the source on GitHub is public. */
+const LOCK_HASH = "499903dfeb717cfca097eef3ff2e516cf5b253446f1609b5af75d6544cad42dd";
+async function passHash(pw) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: new TextEncoder().encode("odla-landet"), iterations: 150000, hash: "SHA-256" }, key, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function start() {
+  draw();
+  settleApp();
+}
+if (ui.get("unlocked", "") === LOCK_HASH) start();
+else {
+  const lock = document.createElement("div");
+  lock.className = "lock";
+  lock.innerHTML = `<form autocomplete="on">${ART.land("#D4EC9A")}<h1>ODLA</h1><p>Skriv lösenordet för att komma in.</p>
+    <input type="password" name="password" autocomplete="current-password" aria-label="Lösenord" required>
+    <button type="submit">Öppna</button><div class="err" role="alert"></div></form>`;
+  document.body.appendChild(lock);
+  const form = lock.querySelector("form"), input = lock.querySelector("input"), err = lock.querySelector(".err");
+  setTimeout(() => input.focus(), 100);
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    let ok = false;
+    try { ok = (await passHash(input.value)) === LOCK_HASH; } catch (x) { err.textContent = "Webbläsaren kan inte kontrollera lösenordet."; return; }
+    if (!ok) {
+      err.textContent = "Fel lösenord.";
+      lock.classList.remove("shake"); void lock.offsetWidth; lock.classList.add("shake");
+      input.select();
+      return;
+    }
+    ui.set("unlocked", LOCK_HASH);
+    input.blur();
+    start();
+    lock.classList.add("gone");
+    setTimeout(() => lock.remove(), 400);
+  });
+}
 try {
   const point = JSON.parse(sessionStorage.getItem("updateWipe"));
   sessionStorage.removeItem("updateWipe");

@@ -2,7 +2,7 @@ name: Publicera till GitHub Pages
 
 on:
   push:
-    branches: [main, claude/charming-rubin-ppchre]
+    branches: [main, claude/charming-rubin-ppchre, claude/determined-hypatia-7odkin]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # ODLA, the garden app, is published beside the training app at /odla/.
+      - run: mkdir -p dist/odla && cp odla/index.html odla/scene.js odla/apple-touch-icon.png dist/odla/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

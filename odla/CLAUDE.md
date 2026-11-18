@@ -5,6 +5,8 @@ Keep this file current. When the workflow, the structure or a standing preferenc
 ## Workflow
 
 - ODLA lives in `odla/` on its own branch in the WO repo, apart from the training app. It is a standalone static app: `index.html` plus `scene.js` (the 3D module) and the icons.
+- Published on GitHub Pages at https://simonjsv98.github.io/WO/odla/, beside the training app. The Pages workflow (`.github/workflows/pages.yml`) builds the training app and copies `odla/index.html`, `scene.js` and the icon into `dist/odla/`. It runs on pushes to this branch as well as the training app's branch; the repo has one Pages site, so whichever branch deploys last decides what is live. Until ODLA is merged into the training app's branch, a deploy from there removes `/odla/`.
+- The page has `noindex` and opens with a password (`LOCK_HASH` in `index.html`, a PBKDF2 hash; the password itself is not in the repo, ask Simon). An unlocked device is remembered. The source is public on GitHub, so the password only keeps people out of the page.
 - Talk to Simon in Swedish. The app's text is Swedish.
 - Check changes in a phone-width browser (390 px) with Playwright, and on iPad Air sizes (820×1180, 1180×820) when the layout changes.
 - Same look, feel and motion as RECIPES and KNIT (simonjsv98/recipes, simonjsv98/knit): Google Sans, #F3F2EF background, fixed top bar, colour tiles on the start page, a list page with a coloured title and dot, short fades between pages, swipe right to go back, sheets that slide up and down, a fixed button at the bottom, the update button with the circle wipe. The motion code is copied from KNIT; keep them in step.
